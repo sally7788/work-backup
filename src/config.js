@@ -5,7 +5,7 @@ export function loadConfig() {
 
   return {
     discordBotToken: readRequired(env, "DISCORD_BOT_TOKEN"),
-    discordChannelIds: readListRequired(env, "DISCORD_CHANNEL_IDS"),
+    discordChannelIds: readDiscordChannelIds(env, "DISCORD_CHANNEL_IDS"),
     discordWebhookUrl: readRequired(env, "DISCORD_WEBHOOK_URL"),
     notionToken: readRequired(env, "NOTION_TOKEN"),
     notionDatabaseId: env.NOTION_DATABASE_ID || DEFAULT_NOTION_DATABASE_ID,
@@ -39,6 +39,23 @@ function readListRequired(env, name) {
   }
 
   return list;
+}
+
+function readDiscordChannelIds(env, name) {
+  const raw = readListRequired(env, name);
+  const normalized = raw
+    .map((value) => {
+      // Accept plain IDs ("123"), mentions ("<#123>"), or accidental text ("channel:123").
+      const match = String(value).match(/\d{6,}/);
+      return match ? match[0] : "";
+    })
+    .filter(Boolean);
+
+  const unique = Array.from(new Set(normalized));
+  if (unique.length === 0) {
+    throw new Error(`${name} must contain at least one numeric channel id`);
+  }
+  return unique;
 }
 
 function readBoolean(value, fallback) {

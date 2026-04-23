@@ -39,7 +39,7 @@ async function fetchMessagesForChannel({ channelId, token, range, excludeBotMess
     url.searchParams.set("limit", "100");
     url.searchParams.set("before", before);
 
-    const batch = await discordFetch(url, token);
+    const batch = await discordFetch(url, token, { channelId });
     if (batch.length === 0) break;
 
     let reachedStart = false;
@@ -63,7 +63,7 @@ async function fetchMessagesForChannel({ channelId, token, range, excludeBotMess
   return messages;
 }
 
-async function discordFetch(url, token) {
+async function discordFetch(url, token, context = {}) {
   const response = await fetch(url, {
     headers: {
       authorization: `Bot ${token}`
@@ -74,11 +74,19 @@ async function discordFetch(url, token) {
     const body = await response.json();
     const retryAfterMs = Math.ceil(Number(body.retry_after || 1) * 1000);
     await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
-    return discordFetch(url, token);
+    return discordFetch(url, token, context);
   }
 
   if (!response.ok) {
-    throw new Error(`Discord API failed: ${response.status} ${await response.text()}`);
+    const details = await response.text();
+    if (response.status === 404 && context.channelId) {
+      throw new Error(
+        `Discord API failed for channel ${context.channelId}: 404 Unknown Channel (code 10003). ` +
+          `This usually means the channel ID is wrong, or the bot cannot access the channel (missing View Channel / Read Message History, or not in the server). ` +
+          `Raw: ${details}`
+      );
+    }
+    throw new Error(`Discord API failed: ${response.status} ${details}`);
   }
 
   return response.json();

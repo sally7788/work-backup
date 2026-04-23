@@ -69,3 +69,11 @@ npm.cmd start
 
 
 등록 후 `Actions > Daily Worklog > Run workflow`로 수동 테스트할 수 있습니다.
+
+## 트러블슈팅
+
+`Unknown Channel (code 10003)`:
+
+- `DISCORD_CHANNEL_IDS`가 숫자 ID인지 확인하세요. (예: `123...` / 또는 `<#123...>`도 가능하지만 숫자만 추출되는지 확인)
+- 봇이 해당 서버에 초대되어 있는지 확인하세요.
+- 봇에 `View Channel`, `Read Message History` 권한이 있는지 확인하세요.
