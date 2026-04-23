@@ -10,7 +10,7 @@ export function loadConfig() {
     notionToken: readRequired(env, "NOTION_TOKEN"),
     notionDatabaseId: env.NOTION_DATABASE_ID || DEFAULT_NOTION_DATABASE_ID,
     geminiApiKey: env.GEMINI_API_KEY || "",
-    geminiModel: env.GEMINI_MODEL || "gemini-2.5-flash",
+    geminiModel: env.GEMINI_MODEL || "gemini-2.0-flash",
     timezone: env.TIMEZONE || "Asia/Seoul",
     dailyReportTime: env.DAILY_REPORT_TIME || "08:00",
     excludeBotMessages: readBoolean(env.EXCLUDE_BOT_MESSAGES, true),
