@@ -55,8 +55,65 @@ function buildTranscript(messages) {
 }
 
 async function summarizeWithGemini({ transcript, date, geminiApiKey, geminiModel }) {
+  const DEFAULT_FALLBACK_MODEL = "gemini-2.5-flash";
+  const modelsToTry = parseGeminiModelCandidates(geminiModel);
+
+  let lastError;
+  let triedFallback = false;
+
+  for (const model of modelsToTry) {
+    try {
+      const body = await generateContentWithGemini({
+        transcript,
+        date,
+        geminiApiKey,
+        model
+      });
+      const text = extractGeminiText(body);
+      return JSON.parse(stripCodeFence(text));
+    } catch (error) {
+      lastError = error;
+
+      if (
+        !triedFallback &&
+        model !== DEFAULT_FALLBACK_MODEL &&
+        isGeminiModelUnavailable(error) &&
+        !modelsToTry.includes(DEFAULT_FALLBACK_MODEL)
+      ) {
+        triedFallback = true;
+        modelsToTry.push(DEFAULT_FALLBACK_MODEL);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+function parseGeminiModelCandidates(geminiModel) {
+  const raw = String(geminiModel || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => value.replace(/^models\//i, ""));
+
+  const unique = [];
+  for (const value of raw) {
+    if (!unique.includes(value)) unique.push(value);
+  }
+
+  return unique.length > 0 ? unique : ["gemini-2.5-flash"];
+}
+
+function isGeminiModelUnavailable(error) {
+  const status = error?.status;
+  const bodyText = error?.bodyText || "";
+  if (status !== 404) return false;
+  return /NOT_FOUND|no longer available|model.*not.*available|model.*not.*found/i.test(bodyText);
+}
+
+async function generateContentWithGemini({ transcript, date, geminiApiKey, model }) {
   const url = new URL(
-    `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
   );
   url.searchParams.set("key", geminiApiKey);
 
@@ -96,12 +153,15 @@ async function summarizeWithGemini({ transcript, date, geminiApiKey, geminiModel
   });
 
   if (!response.ok) {
-    throw new Error(`Gemini API failed: ${response.status} ${await response.text()}`);
+    const bodyText = await response.text();
+    const error = new Error(`Gemini API failed (model=${model}): ${response.status} ${bodyText}`);
+    error.status = response.status;
+    error.bodyText = bodyText;
+    error.model = model;
+    throw error;
   }
 
-  const body = await response.json();
-  const text = extractGeminiText(body);
-  return JSON.parse(stripCodeFence(text));
+  return response.json();
 }
 
 function summarizeWithoutLlm({ messages, date }) {
