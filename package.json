@@ -1,0 +1,13 @@
+{
+  "name": "daily-worklog-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env src/index.js",
+    "run-once": "node --env-file=.env src/index.js --once"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

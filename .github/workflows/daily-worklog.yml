@@ -1,0 +1,36 @@
+name: Daily Worklog
+
+on:
+  schedule:
+    - cron: "0 23 * * 0-4"
+  workflow_dispatch:
+
+jobs:
+  send-daily-worklog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Send daily worklog
+        run: node src/index.js --once
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_IDS: ${{ secrets.DISCORD_CHANNEL_IDS }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.0-flash' }}
+          TIMEZONE: Asia/Seoul
+          DAILY_REPORT_TIME: "08:00"
+          EXCLUDE_BOT_MESSAGES: "true"
+          MAX_TRANSCRIPT_CHARS: "60000"
+          DRY_RUN: "false"
