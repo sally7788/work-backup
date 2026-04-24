@@ -78,7 +78,12 @@ async function fetchMessagesForChannel({ channelId, token, range, excludeBotMess
 
       const normalized = normalizeMessage(message, channelId, createdAt);
       stats.kept += 1;
-      if (!normalized.content && normalized.attachments.length === 0 && normalized.embedsText.length === 0) {
+      if (
+        !normalized.content &&
+        normalized.attachments.length === 0 &&
+        normalized.embedsText.length === 0 &&
+        normalized.stickers.length === 0
+      ) {
         stats.keptEmptyBody += 1;
       }
       messages.push(normalized);
@@ -123,6 +128,10 @@ async function discordFetch(url, token, context = {}) {
 function normalizeMessage(message, channelId, createdAt) {
   const attachments = (message.attachments || []).map((attachment) => attachment.url);
   const embedsText = extractEmbedsText(message.embeds || []);
+  const stickers = (message.sticker_items || [])
+    .map((sticker) => sticker?.name || sticker?.id || "")
+    .map((value) => String(value).trim())
+    .filter(Boolean);
 
   return {
     id: message.id,
@@ -131,6 +140,7 @@ function normalizeMessage(message, channelId, createdAt) {
     content: message.content || "",
     attachments,
     embedsText,
+    stickers,
     createdAt,
     time: formatKstTime(createdAt)
   };

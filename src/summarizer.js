@@ -16,10 +16,22 @@ export async function summarizeWorklog({
     };
   }
 
-  const transcript = buildTranscript(messages).slice(0, maxTranscriptChars);
+  const meaningfulMessages = messages.filter(isMeaningfulMessage);
+  if (meaningfulMessages.length === 0) {
+    const progress = buildUnreadableContentProgress(fetchStats);
+    return {
+      date,
+      title: `${date} 업무 일지`,
+      progress,
+      troubleshooting: ["기록된 트러블슈팅 내용이 없습니다."]
+    };
+  }
+
+  const fullTranscript = buildTranscript(meaningfulMessages);
+  const transcript = truncateTranscript(fullTranscript, maxTranscriptChars);
 
   if (!geminiApiKey) {
-    return summarizeWithoutLlm({ messages, date });
+    return summarizeWithoutLlm({ messages: meaningfulMessages, date });
   }
 
   const result = await summarizeWithGemini({
@@ -59,11 +71,29 @@ function buildTranscript(messages) {
       if (message.content) bodyParts.push(message.content);
       if (message.embedsText?.length > 0) bodyParts.push(`임베드: ${message.embedsText.join(" | ")}`);
       if (message.attachments?.length > 0) bodyParts.push(`첨부: ${message.attachments.join(", ")}`);
+      if (message.stickers?.length > 0) bodyParts.push(`스티커: ${message.stickers.join(", ")}`);
 
       const body = bodyParts.length > 0 ? bodyParts.join("\n") : "(본문 없음)";
       return `[${message.time}] #${message.channelId} ${message.author}\n${body}`;
     })
     .join("\n");
+}
+
+function truncateTranscript(transcript, maxChars) {
+  const max = Number(maxChars || 0);
+  if (!max || transcript.length <= max) return transcript;
+
+  const headSize = Math.floor(max * 0.5);
+  const tailSize = Math.max(0, max - headSize);
+  const head = transcript.slice(0, headSize);
+  const tail = transcript.slice(-tailSize);
+
+  return [
+    `[SYSTEM] transcript truncated: full=${transcript.length} chars, kept=${head.length + tail.length} chars`,
+    head,
+    "\n...[snip]...\n",
+    tail
+  ].join("\n");
 }
 
 async function summarizeWithGemini({ transcript, date, geminiApiKey, geminiModel }) {
@@ -106,7 +136,7 @@ function parseGeminiModelCandidates(geminiModel) {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean)
-    .map((value) => value.replace(/^models\\//i, ""));
+    .map((value) => stripModelsPrefix(value));
 
   const unique = [];
   for (const value of raw) {
@@ -114,6 +144,13 @@ function parseGeminiModelCandidates(geminiModel) {
   }
 
   return unique.length > 0 ? unique : ["gemini-2.5-flash"];
+}
+
+function stripModelsPrefix(value) {
+  const text = String(value || "");
+  if (text.length < 7) return text;
+  if (text.slice(0, 7).toLowerCase() !== "models/") return text;
+  return text.slice(7);
 }
 
 function isGeminiModelUnavailable(error) {
@@ -184,6 +221,7 @@ function summarizeWithoutLlm({ messages, date }) {
       if (message.content) parts.push(message.content);
       if (message.embedsText?.length > 0) parts.push(`임베드: ${message.embedsText.join(" | ")}`);
       if (message.attachments?.length > 0) parts.push(`첨부: ${message.attachments.join(", ")}`);
+      if (message.stickers?.length > 0) parts.push(`스티커: ${message.stickers.join(", ")}`);
       const body = parts.length > 0 ? parts.join(" / ") : "(본문 없음)";
       return `${message.time} ${message.author}: ${body}`;
     })
@@ -246,6 +284,31 @@ function buildEmptyProgress(fetchStats) {
         "Discord Developer Portal에서 MESSAGE CONTENT INTENT 설정을 확인하세요."
     );
   }
+
+  return progress.slice(0, 6);
+}
+
+function isMeaningfulMessage(message) {
+  if (!message) return false;
+  if (String(message.content || "").trim().length > 0) return true;
+  if (Array.isArray(message.embedsText) && message.embedsText.length > 0) return true;
+  if (Array.isArray(message.attachments) && message.attachments.length > 0) return true;
+  if (Array.isArray(message.stickers) && message.stickers.length > 0) return true;
+  return false;
+}
+
+function buildUnreadableContentProgress(fetchStats) {
+  const totals = fetchStats?.totals;
+  const progress = ["Discord 메시지는 수집됐지만 본문/임베드/첨부를 읽을 수 없습니다."];
+
+  if (totals) {
+    progress.push(
+      `kept=${Number(totals.kept || 0)}, keptEmptyBody=${Number(totals.keptEmptyBody || 0)}`
+    );
+  }
+
+  progress.push("Discord Developer Portal에서 MESSAGE CONTENT INTENT를 켰는지 확인하세요.");
+  progress.push("봇 권한(View Channel, Read Message History)과 채널 접근 가능 여부도 확인하세요.");
 
   return progress.slice(0, 6);
 }
