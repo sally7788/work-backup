@@ -4,18 +4,24 @@ const DISCORD_API_BASE = "https://discord.com/api/v10";
 
 export async function fetchChannelMessages({ channelIds, token, range, excludeBotMessages }) {
   const allMessages = [];
+  const perChannel = [];
 
   for (const channelId of channelIds) {
-    const channelMessages = await fetchMessagesForChannel({
+    const { messages: channelMessages, stats } = await fetchMessagesForChannel({
       channelId,
       token,
       range,
       excludeBotMessages
     });
     allMessages.push(...channelMessages);
+    perChannel.push(stats);
   }
 
-  return allMessages.sort((a, b) => a.createdAt - b.createdAt);
+  const messages = allMessages.sort((a, b) => a.createdAt - b.createdAt);
+  return {
+    messages,
+    stats: summarizeStats(perChannel)
+  };
 }
 
 export async function sendDiscordWebhook(webhookUrl, text) {
@@ -33,6 +39,15 @@ export async function sendDiscordWebhook(webhookUrl, text) {
 async function fetchMessagesForChannel({ channelId, token, range, excludeBotMessages }) {
   const messages = [];
   let before = range.endSnowflake;
+  const stats = {
+    channelId,
+    fetched: 0,
+    kept: 0,
+    skippedBeforeStart: 0,
+    skippedAfterEnd: 0,
+    skippedBot: 0,
+    keptEmptyBody: 0
+  };
 
   while (true) {
     const url = new URL(`${DISCORD_API_BASE}/channels/${channelId}/messages`);
@@ -41,6 +56,7 @@ async function fetchMessagesForChannel({ channelId, token, range, excludeBotMess
 
     const batch = await discordFetch(url, token, { channelId });
     if (batch.length === 0) break;
+    stats.fetched += batch.length;
 
     let reachedStart = false;
 
@@ -48,19 +64,31 @@ async function fetchMessagesForChannel({ channelId, token, range, excludeBotMess
       const createdAt = new Date(message.timestamp);
       if (createdAt < range.start) {
         reachedStart = true;
+        stats.skippedBeforeStart += 1;
         continue;
       }
-      if (createdAt >= range.end) continue;
-      if (excludeBotMessages && message.author?.bot) continue;
+      if (createdAt >= range.end) {
+        stats.skippedAfterEnd += 1;
+        continue;
+      }
+      if (excludeBotMessages && message.author?.bot) {
+        stats.skippedBot += 1;
+        continue;
+      }
 
-      messages.push(normalizeMessage(message, channelId, createdAt));
+      const normalized = normalizeMessage(message, channelId, createdAt);
+      stats.kept += 1;
+      if (!normalized.content && normalized.attachments.length === 0 && normalized.embedsText.length === 0) {
+        stats.keptEmptyBody += 1;
+      }
+      messages.push(normalized);
     }
 
     before = batch[batch.length - 1].id;
     if (reachedStart || batch.length < 100) break;
   }
 
-  return messages;
+  return { messages, stats };
 }
 
 async function discordFetch(url, token, context = {}) {
@@ -94,6 +122,7 @@ async function discordFetch(url, token, context = {}) {
 
 function normalizeMessage(message, channelId, createdAt) {
   const attachments = (message.attachments || []).map((attachment) => attachment.url);
+  const embedsText = extractEmbedsText(message.embeds || []);
 
   return {
     id: message.id,
@@ -101,7 +130,44 @@ function normalizeMessage(message, channelId, createdAt) {
     author: message.author?.global_name || message.author?.username || "Unknown",
     content: message.content || "",
     attachments,
+    embedsText,
     createdAt,
     time: formatKstTime(createdAt)
   };
+}
+
+function extractEmbedsText(embeds) {
+  const text = [];
+
+  for (const embed of embeds || []) {
+    if (embed?.title) text.push(String(embed.title));
+    if (embed?.description) text.push(String(embed.description));
+    for (const field of embed?.fields || []) {
+      const name = field?.name ? String(field.name) : "";
+      const value = field?.value ? String(field.value) : "";
+      const line = [name, value].filter(Boolean).join(": ");
+      if (line) text.push(line);
+    }
+  }
+
+  return text.map((value) => value.trim()).filter(Boolean);
+}
+
+function summarizeStats(perChannel) {
+  const totals = {
+    fetched: 0,
+    kept: 0,
+    skippedBeforeStart: 0,
+    skippedAfterEnd: 0,
+    skippedBot: 0,
+    keptEmptyBody: 0
+  };
+
+  for (const stats of perChannel) {
+    for (const key of Object.keys(totals)) {
+      totals[key] += Number(stats[key] || 0);
+    }
+  }
+
+  return { perChannel, totals };
 }

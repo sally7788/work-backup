@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file=.env src/index.js",
-    "run-once": "node --env-file=.env src/index.js --once"
+    "run-once": "node --env-file=.env src/index.js --once",
+    "test": "node src/summarizer.selftest.js"
   },
   "engines": {
     "node": ">=24"

@@ -1,10 +1,18 @@
-export async function summarizeWorklog({ messages, date, geminiApiKey, geminiModel, maxTranscriptChars }) {
+export async function summarizeWorklog({
+  messages,
+  date,
+  geminiApiKey,
+  geminiModel,
+  maxTranscriptChars,
+  fetchStats
+}) {
   if (messages.length === 0) {
+    const progress = buildEmptyProgress(fetchStats);
     return {
       date,
       title: `${date} 업무 일지`,
-      progress: ["채널에 작성된 업무 메시지가 없습니다."],
-      troubleshooting: ["기록된 트러블 슈팅 내용이 없습니다."]
+      progress,
+      troubleshooting: ["기록된 트러블슈팅 내용이 없습니다."]
     };
   }
 
@@ -25,7 +33,7 @@ export async function summarizeWorklog({ messages, date, geminiApiKey, geminiMod
     date,
     title: result.title || `${date} 업무 일지`,
     progress: normalizeList(result.progress, "기록된 진행 내용이 없습니다."),
-    troubleshooting: normalizeList(result.troubleshooting, "기록된 트러블 슈팅 내용이 없습니다.")
+    troubleshooting: normalizeList(result.troubleshooting, "기록된 트러블슈팅 내용이 없습니다.")
   };
 }
 
@@ -36,10 +44,10 @@ export function formatReport(summary) {
     "## 제목",
     summary.title,
     "",
-    "## 진행한 내용",
+    "## 진행 내용",
     ...summary.progress.map((item) => `- ${item}`),
     "",
-    "## 트러블 슈팅",
+    "## 트러블슈팅",
     ...summary.troubleshooting.map((item) => `- ${item}`)
   ].join("\n");
 }
@@ -47,9 +55,13 @@ export function formatReport(summary) {
 function buildTranscript(messages) {
   return messages
     .map((message) => {
-      const attachmentText =
-        message.attachments.length > 0 ? ` 첨부: ${message.attachments.join(", ")}` : "";
-      return `[${message.time}] #${message.channelId} ${message.author}: ${message.content}${attachmentText}`;
+      const bodyParts = [];
+      if (message.content) bodyParts.push(message.content);
+      if (message.embedsText?.length > 0) bodyParts.push(`임베드: ${message.embedsText.join(" | ")}`);
+      if (message.attachments?.length > 0) bodyParts.push(`첨부: ${message.attachments.join(", ")}`);
+
+      const body = bodyParts.length > 0 ? bodyParts.join("\n") : "(본문 없음)";
+      return `[${message.time}] #${message.channelId} ${message.author}\n${body}`;
     })
     .join("\n");
 }
@@ -94,7 +106,7 @@ function parseGeminiModelCandidates(geminiModel) {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean)
-    .map((value) => value.replace(/^models\//i, ""));
+    .map((value) => value.replace(/^models\\//i, ""));
 
   const unique = [];
   for (const value of raw) {
@@ -129,18 +141,19 @@ async function generateContentWithGemini({ transcript, date, geminiApiKey, model
           parts: [
             {
               text: [
-                "너는 한국어 업무 일지를 작성하는 비서다.",
-                "Discord 대화를 근거로만 간결한 일지를 작성한다.",
-                "추측하지 말고, 오류/장애/해결/원인/수정 같은 내용은 트러블 슈팅에 분리한다.",
+                "너는 한국어 업무 일지 요약 비서다.",
+                "아래 Discord 메시지 로그를 바탕으로 어제 업무 일지를 요약해라.",
+                "추측하지 말고, 로그에 있는 사실만 요약한다.",
+                "오류/에러/버그/실패/장애/원인/해결/수정/이슈/문제 관련 내용은 'troubleshooting'으로 분리한다.",
                 "",
                 `날짜: ${date}`,
-                "아래 Discord 메시지를 바탕으로 JSON만 반환해.",
-                '스키마: {"title":"짧은 제목","progress":["진행 내용"],"troubleshooting":["트러블 슈팅 내용"]}',
-                "progress와 troubleshooting은 각각 1~6개 항목으로 작성해.",
-                '트러블 슈팅 내용이 없으면 "기록된 트러블 슈팅 내용이 없습니다."를 넣어.',
+                "아래 로그를 바탕으로 JSON만 반환해라. (추가 설명 금지)",
+                '스키마: {"title":"간단한 제목","progress":["진행 내용"],"troubleshooting":["트러블슈팅 내용"]}',
+                "progress와 troubleshooting은 각각 1~6개 항목으로 작성한다.",
+                '트러블슈팅 내용이 없으면 troubleshooting에 "기록된 트러블슈팅 내용이 없습니다." 한 줄을 넣는다.',
                 "",
                 transcript
-              ].join("\n")
+              ].join("\\n")
             }
           ]
         }
@@ -166,20 +179,27 @@ async function generateContentWithGemini({ transcript, date, geminiApiKey, model
 
 function summarizeWithoutLlm({ messages, date }) {
   const lines = messages
-    .map((message) => `${message.time} ${message.author}: ${message.content}`)
+    .map((message) => {
+      const parts = [];
+      if (message.content) parts.push(message.content);
+      if (message.embedsText?.length > 0) parts.push(`임베드: ${message.embedsText.join(" | ")}`);
+      if (message.attachments?.length > 0) parts.push(`첨부: ${message.attachments.join(", ")}`);
+      const body = parts.length > 0 ? parts.join(" / ") : "(본문 없음)";
+      return `${message.time} ${message.author}: ${body}`;
+    })
     .filter((line) => line.trim().length > 0)
     .slice(0, 10);
 
   const troubleshooting = lines.filter((line) =>
-    /(오류|에러|장애|버그|실패|해결|원인|트러블|문제)/i.test(line)
+    /(오류|에러|버그|실패|장애|원인|해결|수정|이슈|문제|error|bug|fail|failed|incident|issue)/i.test(line)
   );
 
   return {
     date,
     title: `${date} 업무 일지`,
-    progress: lines.length > 0 ? lines : ["채널 메시지는 있었지만 요약할 텍스트가 없습니다."],
+    progress: lines.length > 0 ? lines : ["요약할 수 있는 텍스트가 없습니다."],
     troubleshooting:
-      troubleshooting.length > 0 ? troubleshooting : ["기록된 트러블 슈팅 내용이 없습니다."]
+      troubleshooting.length > 0 ? troubleshooting : ["기록된 트러블슈팅 내용이 없습니다."]
   };
 }
 
@@ -192,7 +212,7 @@ function extractGeminiText(body) {
 }
 
 function stripCodeFence(text) {
-  return text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  return text.replace(/^```(?:json)?\\s*/i, "").replace(/\\s*```$/i, "").trim();
 }
 
 function normalizeList(value, fallback) {
@@ -201,4 +221,31 @@ function normalizeList(value, fallback) {
   }
   const normalized = value.map((item) => String(item).trim()).filter(Boolean);
   return normalized.length > 0 ? normalized : [fallback];
+}
+
+function buildEmptyProgress(fetchStats) {
+  const totals = fetchStats?.totals;
+  const progress = ["요약할 Discord 메시지가 없습니다."];
+
+  if (!totals) return progress;
+
+  if (Number(totals.fetched) === 0) {
+    progress.push("채널 ID/권한(View Channel, Read Message History) 또는 날짜 범위를 확인하세요.");
+    return progress;
+  }
+
+  if (Number(totals.skippedBot) > 0) {
+    progress.push(
+      `EXCLUDE_BOT_MESSAGES=true로 봇 메시지 ${totals.skippedBot}개가 제외되었습니다. 필요하면 false로 설정하세요.`
+    );
+  }
+
+  if (Number(totals.keptEmptyBody) > 0) {
+    progress.push(
+      `수집된 메시지 중 본문/임베드/첨부가 비어있는 항목이 ${totals.keptEmptyBody}개 있습니다. ` +
+        "Discord Developer Portal에서 MESSAGE CONTENT INTENT 설정을 확인하세요."
+    );
+  }
+
+  return progress.slice(0, 6);
 }

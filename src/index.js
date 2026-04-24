@@ -20,7 +20,7 @@ async function runDailyReport() {
   const range = getYesterdayRangeKst();
   console.log(`Collecting Discord messages for ${range.date}`);
 
-  const messages = await fetchChannelMessages({
+  const { messages, stats } = await fetchChannelMessages({
     channelIds: config.discordChannelIds,
     token: config.discordBotToken,
     range,
@@ -28,13 +28,15 @@ async function runDailyReport() {
   });
 
   console.log(`Collected ${messages.length} messages`);
+  logDiscordFetchStats(stats);
 
   const summary = await summarizeWorklog({
     messages,
     date: range.date,
     geminiApiKey: config.geminiApiKey,
     geminiModel: config.geminiModel,
-    maxTranscriptChars: config.maxTranscriptChars
+    maxTranscriptChars: config.maxTranscriptChars,
+    fetchStats: stats
   });
 
   const report = formatReport(summary);
@@ -75,3 +77,22 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+function logDiscordFetchStats(stats) {
+  if (!stats) return;
+
+  const { totals, perChannel } = stats;
+  console.log(
+    `Discord fetch totals: fetched=${totals.fetched}, kept=${totals.kept}, ` +
+      `skippedBot=${totals.skippedBot}, skippedBeforeStart=${totals.skippedBeforeStart}, ` +
+      `skippedAfterEnd=${totals.skippedAfterEnd}, keptEmptyBody=${totals.keptEmptyBody}`
+  );
+
+  for (const channel of perChannel || []) {
+    console.log(
+      `- #${channel.channelId}: kept=${channel.kept} (fetched=${channel.fetched}, ` +
+        `skippedBot=${channel.skippedBot}, skippedBeforeStart=${channel.skippedBeforeStart}, ` +
+        `skippedAfterEnd=${channel.skippedAfterEnd}, keptEmptyBody=${channel.keptEmptyBody})`
+    );
+  }
+}
