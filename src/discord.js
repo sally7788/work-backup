@@ -46,7 +46,9 @@ async function fetchMessagesForChannel({ channelId, token, range, excludeBotMess
     skippedBeforeStart: 0,
     skippedAfterEnd: 0,
     skippedBot: 0,
-    keptEmptyBody: 0
+    keptEmptyBody: 0,
+    keptSystem: 0,
+    keptEmptySystem: 0
   };
 
   while (true) {
@@ -78,6 +80,7 @@ async function fetchMessagesForChannel({ channelId, token, range, excludeBotMess
 
       const normalized = normalizeMessage(message, channelId, createdAt);
       stats.kept += 1;
+      if (normalized.type !== 0) stats.keptSystem += 1;
       if (
         !normalized.content &&
         normalized.attachments.length === 0 &&
@@ -85,6 +88,7 @@ async function fetchMessagesForChannel({ channelId, token, range, excludeBotMess
         normalized.stickers.length === 0
       ) {
         stats.keptEmptyBody += 1;
+        if (normalized.type !== 0) stats.keptEmptySystem += 1;
       }
       messages.push(normalized);
     }
@@ -135,6 +139,7 @@ function normalizeMessage(message, channelId, createdAt) {
 
   return {
     id: message.id,
+    type: Number(message.type || 0),
     channelId,
     author: message.author?.global_name || message.author?.username || "Unknown",
     content: message.content || "",
@@ -170,7 +175,9 @@ function summarizeStats(perChannel) {
     skippedBeforeStart: 0,
     skippedAfterEnd: 0,
     skippedBot: 0,
-    keptEmptyBody: 0
+    keptEmptyBody: 0,
+    keptSystem: 0,
+    keptEmptySystem: 0
   };
 
   for (const stats of perChannel) {

@@ -85,14 +85,16 @@ function logDiscordFetchStats(stats) {
   console.log(
     `Discord fetch totals: fetched=${totals.fetched}, kept=${totals.kept}, ` +
       `skippedBot=${totals.skippedBot}, skippedBeforeStart=${totals.skippedBeforeStart}, ` +
-      `skippedAfterEnd=${totals.skippedAfterEnd}, keptEmptyBody=${totals.keptEmptyBody}`
+      `skippedAfterEnd=${totals.skippedAfterEnd}, keptEmptyBody=${totals.keptEmptyBody}, ` +
+      `keptSystem=${totals.keptSystem}, keptEmptySystem=${totals.keptEmptySystem}`
   );
 
   for (const channel of perChannel || []) {
     console.log(
       `- #${channel.channelId}: kept=${channel.kept} (fetched=${channel.fetched}, ` +
         `skippedBot=${channel.skippedBot}, skippedBeforeStart=${channel.skippedBeforeStart}, ` +
-        `skippedAfterEnd=${channel.skippedAfterEnd}, keptEmptyBody=${channel.keptEmptyBody})`
+        `skippedAfterEnd=${channel.skippedAfterEnd}, keptEmptyBody=${channel.keptEmptyBody}, ` +
+        `keptSystem=${channel.keptSystem}, keptEmptySystem=${channel.keptEmptySystem})`
     );
   }
 }
