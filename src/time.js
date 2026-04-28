@@ -1,5 +1,7 @@
 const DISCORD_EPOCH = 1420070400000n;
 
+const KST_WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 export function getYesterdayRangeKst(now = new Date()) {
   const current = getKstParts(now);
   const end = new Date(Date.UTC(current.year, current.month - 1, current.day - 1, 15, 0, 0, 0));
@@ -11,6 +13,35 @@ export function getYesterdayRangeKst(now = new Date()) {
     date: formatKstDate(start),
     startSnowflake: timestampToSnowflake(start.getTime()),
     endSnowflake: timestampToSnowflake(end.getTime())
+  };
+}
+
+// Returns the target workday range in KST for daily worklog generation.
+// - Mon (KST): targets previous Friday (3 days back)
+// - Tue-Fri (KST): targets the previous day (1 day back)
+// - Sat/Sun (KST): returns null so the caller can skip the run
+export function getTargetWorkdayRangeKst(now = new Date()) {
+  const current = getKstParts(now);
+  const weekday = getKstWeekday(now);
+
+  if (weekday === 0 || weekday === 6) {
+    return null;
+  }
+
+  const daysBack = weekday === 1 ? 3 : 1;
+
+  const end = new Date(
+    Date.UTC(current.year, current.month - 1, current.day - daysBack, 15, 0, 0, 0)
+  );
+  const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+
+  return {
+    start,
+    end,
+    date: formatKstDate(start),
+    startSnowflake: timestampToSnowflake(start.getTime()),
+    endSnowflake: timestampToSnowflake(end.getTime()),
+    weekday: KST_WEEKDAY_NAMES[weekday]
   };
 }
 
@@ -53,6 +84,15 @@ function getKstParts(date) {
     month: Number(parts.find((part) => part.type === "month").value),
     day: Number(parts.find((part) => part.type === "day").value)
   };
+}
+
+function getKstWeekday(date) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Seoul",
+    weekday: "short"
+  });
+  const map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return map[formatter.format(date)];
 }
 
 function parseTime(value) {

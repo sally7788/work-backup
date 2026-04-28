@@ -2,7 +2,7 @@ import { loadConfig } from "./config.js";
 import { fetchChannelMessages, sendDiscordWebhook } from "./discord.js";
 import { createNotionWorklogPage } from "./notion.js";
 import { formatReport, summarizeWorklog } from "./summarizer.js";
-import { getDelayUntilNextRun, getYesterdayRangeKst } from "./time.js";
+import { getDelayUntilNextRun, getTargetWorkdayRangeKst } from "./time.js";
 
 const config = loadConfig();
 const runOnce = process.argv.includes("--once");
@@ -17,8 +17,12 @@ async function main() {
 }
 
 async function runDailyReport() {
-  const range = getYesterdayRangeKst();
-  console.log(`Collecting Discord messages for ${range.date}`);
+  const range = getTargetWorkdayRangeKst();
+  if (!range) {
+    console.log("주말(KST 토/일)에는 보고를 생성하지 않습니다. 정상 종료합니다.");
+    return;
+  }
+  console.log(`Collecting Discord messages for ${range.date} (${range.weekday} target)`);
 
   const { messages, stats } = await fetchChannelMessages({
     channelIds: config.discordChannelIds,

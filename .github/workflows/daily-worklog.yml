@@ -2,7 +2,8 @@ name: Daily Worklog
 
 on:
   schedule:
-    - cron: "0 23 * * 2-6"
+    # Mon-Fri 08:00 KST = Sun-Thu 23:00 UTC. Saturday/Sunday KST runs (via workflow_dispatch) exit early.
+    - cron: "0 23 * * 0-4"
   workflow_dispatch:
 
 jobs:

@@ -1,3 +1,5 @@
+import { SECTIONS, SECTION_LABELS } from "./summarizer.js";
+
 const NOTION_API_BASE = "https://api.notion.com/v1";
 const NOTION_VERSION = "2022-06-28";
 
@@ -57,12 +59,14 @@ function findProperty(properties, type) {
 }
 
 function buildChildren(summary) {
-  return [
-    heading("진행한 내용"),
-    ...summary.progress.map((item) => bullet(item)),
-    heading("트러블 슈팅"),
-    ...summary.troubleshooting.map((item) => bullet(item))
-  ];
+  const children = [];
+  for (const key of SECTIONS) {
+    children.push(heading(SECTION_LABELS[key]));
+    for (const item of summary[key]) {
+      children.push(bullet(item));
+    }
+  }
+  return children;
 }
 
 function heading(text) {
