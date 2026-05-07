@@ -1,6 +1,7 @@
 import { formatKstTime } from "./time.js";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
+const DISCORD_WEBHOOK_CONTENT_LIMIT = 2000;
 
 export async function fetchChannelMessages({ channelIds, token, range, excludeBotMessages }) {
   const allMessages = [];
@@ -25,15 +26,85 @@ export async function fetchChannelMessages({ channelIds, token, range, excludeBo
 }
 
 export async function sendDiscordWebhook(webhookUrl, text) {
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ content: text })
-  });
+  const chunks = splitDiscordContent(text, DISCORD_WEBHOOK_CONTENT_LIMIT);
+  for (let index = 0; index < chunks.length; index += 1) {
+    const chunk = chunks[index];
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: chunk })
+    });
 
-  if (!response.ok) {
-    throw new Error(`Discord webhook failed: ${response.status} ${await response.text()}`);
+    if (!response.ok) {
+      throw new Error(`Discord webhook failed: ${response.status} ${await response.text()}`);
+    }
+
+    if (index < chunks.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
   }
+}
+
+export function splitDiscordContent(text, limit = DISCORD_WEBHOOK_CONTENT_LIMIT) {
+  const normalized = String(text ?? "").replace(/\r\n/g, "\n");
+  if (normalized.length <= limit) return [normalized];
+  if (limit <= 0) return [""];
+
+  const lines = normalized.split("\n");
+
+  const chunkWithLimit = (contentLimit) => {
+    const chunks = [];
+    let current = "";
+
+    function pushCurrent() {
+      if (current.length === 0) return;
+      chunks.push(current);
+      current = "";
+    }
+
+    function appendPiece(piece) {
+      if (piece.length > contentLimit) {
+        pushCurrent();
+        for (let i = 0; i < piece.length; i += contentLimit) {
+          chunks.push(piece.slice(i, i + contentLimit));
+        }
+        return;
+      }
+
+      if (current.length === 0) {
+        current = piece;
+        return;
+      }
+
+      if (current.length + 1 + piece.length <= contentLimit) {
+        current += `\n${piece}`;
+        return;
+      }
+
+      pushCurrent();
+      current = piece;
+    }
+
+    for (const line of lines) appendPiece(line);
+    pushCurrent();
+    return chunks;
+  };
+
+  const prefixLenForTotal = (total) => `(${total}/${total}) `.length;
+
+  let reserve = 20; // safe default; refined below
+  let chunks = [];
+  for (let i = 0; i < 5; i += 1) {
+    const contentLimit = Math.max(1, limit - reserve);
+    chunks = chunkWithLimit(contentLimit);
+    if (chunks.length <= 1) return chunks;
+    const neededReserve = prefixLenForTotal(chunks.length);
+    if (neededReserve === reserve) break;
+    reserve = neededReserve;
+  }
+
+  const total = chunks.length;
+  return chunks.map((chunk, i) => `(${i + 1}/${total}) ${chunk}`);
 }
 
 async function fetchMessagesForChannel({ channelId, token, range, excludeBotMessages }) {
