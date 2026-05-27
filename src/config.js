@@ -34,6 +34,8 @@ export function loadTroubleshootingConfig() {
       { name: "NOTION_TROUBLESHOOT_PARENT_PAGE_ID" }
     ),
     troubleshootingDatabaseName: env.NOTION_TROUBLESHOOT_DATABASE_NAME || "Troubleshooting",
+    troubleshootingContainerPageTitle:
+      env.NOTION_TROUBLESHOOT_CONTAINER_PAGE_TITLE || "Troubleshooting",
     lookbackDays: Number(env.TROUBLESHOOT_LOOKBACK_DAYS || 7),
     timezone: env.TIMEZONE || "Asia/Seoul",
     dryRun: readBoolean(env.DRY_RUN, false)

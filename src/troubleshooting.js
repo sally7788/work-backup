@@ -44,9 +44,16 @@ async function main() {
 
   console.log(`Found ${worklogPages.length} worklog pages in range`);
 
+  const parentPageId = await resolveParentPageId({
+    token: config.notionToken,
+    parentId: config.troubleshootingParentPageId,
+    containerPageTitle: config.troubleshootingContainerPageTitle,
+    dryRun: config.dryRun
+  });
+
   const troubleshootingDatabaseId = await ensureTroubleshootingDatabase({
     token: config.notionToken,
-    parentPageId: config.troubleshootingParentPageId,
+    parentPageId,
     databaseName: config.troubleshootingDatabaseName
   });
 
@@ -130,6 +137,56 @@ async function ensureTroubleshootingDatabase({ token, parentPageId, databaseName
 
   console.log(`Created troubleshooting database: ${databaseName} (${created.id})`);
   return created.id;
+}
+
+async function resolveParentPageId({ token, parentId, containerPageTitle, dryRun }) {
+  // Notion allows creating a database only under a page (page_id) or workspace.
+  // Users sometimes paste a database URL/ID here; when that happens, create a container page in that database
+  // and parent the troubleshooting database under the new page.
+
+  try {
+    await notionFetch(`/pages/${parentId}`, token);
+    return parentId;
+  } catch {
+    // ignore and try as database
+  }
+
+  let database;
+  try {
+    database = await notionFetch(`/databases/${parentId}`, token);
+  } catch {
+    throw new Error(
+      "NOTION_TROUBLESHOOT_PARENT_PAGE_ID must be a Notion page id/url (or a database id/url to auto-create a container page)."
+    );
+  }
+
+  const titleProperty = findProperty(database.properties, "title");
+  if (!titleProperty) {
+    throw new Error("Troubleshooting parent database must include a title property to create a container page");
+  }
+
+  if (dryRun) {
+    console.log(
+      `[DRY_RUN] parent is a database (${parentId}); would create container page titled "${containerPageTitle}"`
+    );
+    // Best-effort: return the database id so subsequent calls fail fast rather than mutating state in DRY_RUN.
+    return parentId;
+  }
+
+  const page = await notionFetch("/pages", token, {
+    method: "POST",
+    body: {
+      parent: { database_id: parentId },
+      properties: {
+        [titleProperty.name]: {
+          title: [{ type: "text", text: { content: containerPageTitle } }]
+        }
+      }
+    }
+  });
+
+  console.log(`Created troubleshooting container page: "${containerPageTitle}" (${page.id})`);
+  return page.id;
 }
 
 async function createTroubleshootingEntry({ token, databaseId, title, worklogDate, sourceUrl }) {

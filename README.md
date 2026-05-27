@@ -104,10 +104,11 @@ npm.cmd start
 
 - `NOTION_TOKEN`
 - `NOTION_DATABASE_ID` (업무일지 DB)
-- `NOTION_TROUBLESHOOT_PARENT_PAGE_ID` (트러블슈팅 DB를 만들/둘 상위 Notion 페이지 ID 또는 해당 페이지 링크)
+- `NOTION_TROUBLESHOOT_PARENT_PAGE_ID` (트러블슈팅 DB를 만들/둘 상위 Notion 페이지 ID/링크. 실수로 DB 링크를 넣으면 해당 DB에 컨테이너 페이지를 만든 뒤 그 아래에 생성)
 
 선택 환경변수:
 
 - `NOTION_TROUBLESHOOT_DATABASE_NAME` (기본값: `Troubleshooting`)
+- `NOTION_TROUBLESHOOT_CONTAINER_PAGE_TITLE` (기본값: `Troubleshooting`)
 - `TROUBLESHOOT_LOOKBACK_DAYS` (기본값: `7`)
 - `DRY_RUN=true` (생성 대신 콘솔 출력)
