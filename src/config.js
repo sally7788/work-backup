@@ -19,6 +19,20 @@ export function loadConfig() {
   };
 }
 
+export function loadTroubleshootingConfig() {
+  const env = process.env;
+
+  return {
+    notionToken: readRequired(env, "NOTION_TOKEN"),
+    worklogDatabaseId: env.NOTION_DATABASE_ID || DEFAULT_NOTION_DATABASE_ID,
+    troubleshootingParentPageId: readRequired(env, "NOTION_TROUBLESHOOT_PARENT_PAGE_ID"),
+    troubleshootingDatabaseName: env.NOTION_TROUBLESHOOT_DATABASE_NAME || "Troubleshooting",
+    lookbackDays: Number(env.TROUBLESHOOT_LOOKBACK_DAYS || 7),
+    timezone: env.TIMEZONE || "Asia/Seoul",
+    dryRun: readBoolean(env.DRY_RUN, false)
+  };
+}
+
 function readRequired(env, name) {
   const value = env[name];
   if (!value) {

@@ -1,0 +1,33 @@
+name: Weekly Troubleshooting DB
+
+on:
+  schedule:
+    # Mon 09:00 KST = Mon 00:00 UTC
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+jobs:
+  build-troubleshooting-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Build troubleshooting database
+        run: node src/troubleshooting.js
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          NOTION_TROUBLESHOOT_PARENT_PAGE_ID: ${{ secrets.NOTION_TROUBLESHOOT_PARENT_PAGE_ID }}
+          NOTION_TROUBLESHOOT_DATABASE_NAME: ${{ vars.NOTION_TROUBLESHOOT_DATABASE_NAME || 'Troubleshooting' }}
+          TROUBLESHOOT_LOOKBACK_DAYS: ${{ vars.TROUBLESHOOT_LOOKBACK_DAYS || '7' }}
+          TIMEZONE: Asia/Seoul
+          DRY_RUN: "false"
+

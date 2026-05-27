@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node --env-file=.env src/index.js",
     "run-once": "node --env-file=.env src/index.js --once",
+    "troubleshooting": "node --env-file=.env src/troubleshooting.js",
     "test": "node src/summarizer.selftest.js && node src/discord.selftest.js"
   },
   "engines": {

@@ -92,3 +92,22 @@ npm.cmd start
 - `DISCORD_CHANNEL_IDS`가 숫자 ID인지 확인하세요. (예: `123...` / 또는 `<#123...>`도 가능하지만 숫자만 추출되는지 확인)
 - 봇이 해당 서버에 초대되어 있는지 확인하세요.
 - 봇에 `View Channel`, `Read Message History` 권한이 있는지 확인하세요.
+
+## Weekly Troubleshooting Database
+
+기존 업무일지(Notion DB)를 읽어서, 특정 Notion 페이지 아래에 트러블슈팅용 새 데이터베이스(없으면 생성)를 만들고, 트러블슈팅 bullet 항목별로 페이지를 추가합니다.
+
+- 실행 스크립트: `node src/troubleshooting.js`
+- GitHub Actions: `.github/workflows/weekly-troubleshooting.yml` (매주 월요일 09:00 KST)
+
+필수 환경변수:
+
+- `NOTION_TOKEN`
+- `NOTION_DATABASE_ID` (업무일지 DB)
+- `NOTION_TROUBLESHOOT_PARENT_PAGE_ID` (트러블슈팅 DB를 만들/둘 상위 Notion 페이지 ID)
+
+선택 환경변수:
+
+- `NOTION_TROUBLESHOOT_DATABASE_NAME` (기본값: `Troubleshooting`)
+- `TROUBLESHOOT_LOOKBACK_DAYS` (기본값: `7`)
+- `DRY_RUN=true` (생성 대신 콘솔 출력)

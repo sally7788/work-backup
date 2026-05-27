@@ -34,7 +34,7 @@ export async function createNotionWorklogPage({ token, databaseId, summary }) {
   });
 }
 
-async function notionFetch(path, token, options = {}) {
+export async function notionFetch(path, token, options = {}) {
   const response = await fetch(`${NOTION_API_BASE}${path}`, {
     method: options.method || "GET",
     headers: {
@@ -52,7 +52,7 @@ async function notionFetch(path, token, options = {}) {
   return response.json();
 }
 
-function findProperty(properties, type) {
+export function findProperty(properties, type) {
   return Object.entries(properties)
     .map(([name, property]) => ({ name, ...property }))
     .find((property) => property.type === type);
