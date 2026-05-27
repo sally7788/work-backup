@@ -8,7 +8,9 @@ export function loadConfig() {
     discordChannelIds: readDiscordChannelIds(env, "DISCORD_CHANNEL_IDS"),
     discordWebhookUrl: readRequired(env, "DISCORD_WEBHOOK_URL"),
     notionToken: readRequired(env, "NOTION_TOKEN"),
-    notionDatabaseId: env.NOTION_DATABASE_ID || DEFAULT_NOTION_DATABASE_ID,
+    notionDatabaseId: normalizeNotionId(env.NOTION_DATABASE_ID || DEFAULT_NOTION_DATABASE_ID, {
+      name: "NOTION_DATABASE_ID"
+    }),
     geminiApiKey: env.GEMINI_API_KEY || "",
     geminiModel: env.GEMINI_MODEL || "gemini-2.0-flash",
     timezone: env.TIMEZONE || "Asia/Seoul",
@@ -24,8 +26,13 @@ export function loadTroubleshootingConfig() {
 
   return {
     notionToken: readRequired(env, "NOTION_TOKEN"),
-    worklogDatabaseId: env.NOTION_DATABASE_ID || DEFAULT_NOTION_DATABASE_ID,
-    troubleshootingParentPageId: readRequired(env, "NOTION_TROUBLESHOOT_PARENT_PAGE_ID"),
+    worklogDatabaseId: normalizeNotionId(env.NOTION_DATABASE_ID || DEFAULT_NOTION_DATABASE_ID, {
+      name: "NOTION_DATABASE_ID"
+    }),
+    troubleshootingParentPageId: normalizeNotionId(
+      readRequired(env, "NOTION_TROUBLESHOOT_PARENT_PAGE_ID"),
+      { name: "NOTION_TROUBLESHOOT_PARENT_PAGE_ID" }
+    ),
     troubleshootingDatabaseName: env.NOTION_TROUBLESHOOT_DATABASE_NAME || "Troubleshooting",
     lookbackDays: Number(env.TROUBLESHOOT_LOOKBACK_DAYS || 7),
     timezone: env.TIMEZONE || "Asia/Seoul",
@@ -39,6 +46,26 @@ function readRequired(env, name) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
+}
+
+function normalizeNotionId(value, { name } = {}) {
+  const raw = String(value || "").trim();
+  if (!raw) return raw;
+
+  // Accept:
+  // - 32-hex ID: 34b92254028a80f98c05fdb0aa399f89
+  // - UUID: 34b92254-028a-80f9-8c05-fdb0aa399f89
+  // - Notion URLs containing either form
+  const uuidMatch =
+    raw.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) ||
+    raw.match(/[0-9a-f]{32}/i);
+
+  if (!uuidMatch) {
+    const label = name ? `${name}=` : "";
+    throw new Error(`Invalid Notion id/url: ${label}${raw}`);
+  }
+
+  return uuidMatch[0].replace(/-/g, "").toLowerCase();
 }
 
 function readListRequired(env, name) {

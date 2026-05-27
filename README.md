@@ -104,7 +104,7 @@ npm.cmd start
 
 - `NOTION_TOKEN`
 - `NOTION_DATABASE_ID` (업무일지 DB)
-- `NOTION_TROUBLESHOOT_PARENT_PAGE_ID` (트러블슈팅 DB를 만들/둘 상위 Notion 페이지 ID)
+- `NOTION_TROUBLESHOOT_PARENT_PAGE_ID` (트러블슈팅 DB를 만들/둘 상위 Notion 페이지 ID 또는 해당 페이지 링크)
 
 선택 환경변수:
 
