@@ -1,23 +1,23 @@
-// Section keys, labels, and placeholder messages for the 6-section worklog summary.
+ï»¿// Section keys, labels, and placeholder messages for the 6-section worklog summary.
 // The order of SECTIONS is the canonical render order for both Notion and Discord.
 export const SECTIONS = ["done", "troubleshooting", "lessons", "improvements", "notes", "tomorrow"];
 
 export const SECTION_LABELS = {
-  done: "????,
-  troubleshooting: "?¸ëŸ¬ë¸”ìŠˆ??,
-  lessons: "ë°°ìš´??,
-  improvements: "ê°œì„ ? ì ",
-  notes: "ë©”ëª¨/ê¸°í?",
-  tomorrow: "?´ì¼ ????
+  done: "done",
+  troubleshooting: "troubleshooting",
+  lessons: "lessons",
+  improvements: "improvements",
+  notes: "notes",
+  tomorrow: "tomorrow"
 };
 
 export const SECTION_PLACEHOLDERS = {
-  done: "ê¸°ë¡?????¼ì´ ?†ìŠµ?ˆë‹¤.",
-  troubleshooting: "ê¸°ë¡???¸ëŸ¬ë¸”ìŠˆ?…ì´ ?†ìŠµ?ˆë‹¤.",
-  lessons: "ê¸°ë¡??ë°°ìš´?ì´ ?†ìŠµ?ˆë‹¤.",
-  improvements: "ê¸°ë¡??ê°œì„ ? ì ???†ìŠµ?ˆë‹¤.",
-  notes: "ê¸°ë¡??ë©”ëª¨ê°€ ?†ìŠµ?ˆë‹¤.",
-  tomorrow: "ê¸°ë¡???´ì¼ ???¼ì´ ?†ìŠµ?ˆë‹¤."
+  done: "No completed work found.",
+  troubleshooting: "No troubleshooting items found.",
+  lessons: "No lessons noted.",
+  improvements: "No improvements noted.",
+  notes: "No notes added.",
+  tomorrow: "No plans for tomorrow."
 };
 
 export async function summarizeWorklog({
@@ -64,13 +64,13 @@ export async function summarizeWorklog({
 
   return {
     date,
-    title: result.title || `${date} ?…ë¬´ ?¼ì?`,
+    title: result.title || `${date} ?ï¿½ë¬´ ?ï¿½ï¿½?`,
     ...sections
   };
 }
 
 export function formatReport(summary) {
-  const lines = [`# ${summary.date} ?…ë¬´ ?¼ì?`, "", "## ?œëª©", summary.title, ""];
+  const lines = [`# ${summary.date} ?ï¿½ë¬´ ?ï¿½ï¿½?`, "", "## ?ï¿½ëª©", summary.title, ""];
   for (const key of SECTIONS) {
     lines.push(`## ${SECTION_LABELS[key]}`);
     for (const item of summary[key]) {
@@ -90,7 +90,7 @@ function buildSummary({ date, title, done, troubleshooting, lessons, improvement
   }
   return {
     date,
-    title: title || `${date} ?…ë¬´ ?¼ì?`,
+    title: title || `${date} ?ï¿½ë¬´ ?ï¿½ï¿½?`,
     ...sections
   };
 }
@@ -100,11 +100,11 @@ function buildTranscript(messages) {
     .map((message) => {
       const bodyParts = [];
       if (message.content) bodyParts.push(message.content);
-      if (message.embedsText?.length > 0) bodyParts.push(`?„ë² ?? ${message.embedsText.join(" | ")}`);
-      if (message.attachments?.length > 0) bodyParts.push(`ì²¨ë?: ${message.attachments.join(", ")}`);
-      if (message.stickers?.length > 0) bodyParts.push(`?¤í‹°ì»? ${message.stickers.join(", ")}`);
+      if (message.embedsText?.length > 0) bodyParts.push(`?ï¿½ë² ?? ${message.embedsText.join(" | ")}`);
+      if (message.attachments?.length > 0) bodyParts.push(`ì²¨ï¿½?: ${message.attachments.join(", ")}`);
+      if (message.stickers?.length > 0) bodyParts.push(`?ï¿½í‹°ï¿½? ${message.stickers.join(", ")}`);
 
-      const body = bodyParts.length > 0 ? bodyParts.join("\n") : "(ë³¸ë¬¸ ?†ìŒ)";
+      const body = bodyParts.length > 0 ? bodyParts.join("\n") : "(ë³¸ë¬¸ ?ï¿½ìŒ)";
       return `[${message.time}] #${message.channelId} ${message.author}\n${body}`;
     })
     .join("\n");
@@ -208,21 +208,21 @@ async function generateContentWithGemini({ transcript, date, geminiApiKey, model
         {
           role: "user",
           content: [
-            "¾Æ·¡ Ã¤ÆÃ ·Î±×¸¦ ±Ù°Å·Î, 6°³ ¼½¼ÇÀ¸·Î ¿ä¾àÇØÁà.",
-            "Discord Ã¤³Î ¸Ş½ÃÁö ·Î±×¸¦ º¸°í, °¢ Ç×¸ñÀ» ¿ä¾àÇØ¼­ JSON¸¸ ¹İÈ¯ÇØÁà.",
-            "Ãâ·Â Çü½ÄÀº Ç×»ó JSON °´Ã¼ÀÌ¸ç, ²À ¾Æ·¡ Å°¸¦ ¸ğµÎ Ã¤¿öÁà:",
-            "- title: ÀÛ¾÷ ÀÏÁö Á¦¸ñ",
-            "- done: ¿Ï·áµÈ ÀÛ¾÷",
-            "- troubleshooting: ÀÌ½´/¿¡·¯/Àå¾Ö/¹®Á¦",
-            "- lessons: ÇĞ½ÀÇÑ ³»¿ë",
-            "- improvements: °³¼±Á¡",
-            "- notes: Âü°í ¸Ş¸ğ",
-            "- tomorrow: ´ÙÀ½ ³¯ °èÈ¹",
+            "ï¿½Æ·ï¿½ Ã¤ï¿½ï¿½ ï¿½Î±×¸ï¿½ ï¿½Ù°Å·ï¿½, 6ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½.",
+            "Discord Ã¤ï¿½ï¿½ ï¿½Ş½ï¿½ï¿½ï¿½ ï¿½Î±×¸ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ ï¿½×¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ø¼ï¿½ JSONï¿½ï¿½ ï¿½ï¿½È¯ï¿½ï¿½ï¿½ï¿½.",
+            "ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½×»ï¿½ JSON ï¿½ï¿½Ã¼ï¿½Ì¸ï¿½, ï¿½ï¿½ ï¿½Æ·ï¿½ Å°ï¿½ï¿½ ï¿½ï¿½ï¿½ Ã¤ï¿½ï¿½ï¿½ï¿½:",
+            "- title: ï¿½Û¾ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½",
+            "- done: ï¿½Ï·ï¿½ï¿½ ï¿½Û¾ï¿½",
+            "- troubleshooting: ï¿½Ì½ï¿½/ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½",
+            "- lessons: ï¿½Ğ½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½",
+            "- improvements: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
+            "- notes: ï¿½ï¿½ï¿½ï¿½ ï¿½Ş¸ï¿½",
+            "- tomorrow: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½È¹",
             "",
-            `±âÁØÀÏ: ${date}`,
-            "¸Ş½ÃÁö ¿ø¹®À» ±Ù°Å·Î °¢ ¼½¼ÇÀ» ¹®ÀÚ¿­ ¹è¿­·Î ±¸¼ºÇÏ°í, ¹İµå½Ã 1~6°³ Ç×¸ñ ¹üÀ§·Î Ã¤¿öÁà.",
-            "¿¹½Ã: {\"title\":\"ÀÛ¾÷ ¿ä¾à\",\"done\":[\"...\"],\"troubleshooting\":[\"...\"],\"lessons\":[\"...\"],\"improvements\":[\"...\"],\"notes\":[\"...\"],\"tomorrow\":[\"...\"]}",
-            "ÇÊ¿äÇÏ¸é JSON ¹è¿­À» ºó ¹è¿­([])·Î µÎ¾îµµ µÈ´Ù.",
+            `ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: ${date}`,
+            "ï¿½Ş½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ù°Å·ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ú¿ï¿½ ï¿½è¿­ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï°ï¿½, ï¿½İµï¿½ï¿½ 1~6ï¿½ï¿½ ï¿½×¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ã¤ï¿½ï¿½ï¿½ï¿½.",
+            "ï¿½ï¿½ï¿½ï¿½: {\"title\":\"ï¿½Û¾ï¿½ ï¿½ï¿½ï¿½\",\"done\":[\"...\"],\"troubleshooting\":[\"...\"],\"lessons\":[\"...\"],\"improvements\":[\"...\"],\"notes\":[\"...\"],\"tomorrow\":[\"...\"]}",
+            "ï¿½Ê¿ï¿½ï¿½Ï¸ï¿½ JSON ï¿½è¿­ï¿½ï¿½ ï¿½ï¿½ ï¿½è¿­([])ï¿½ï¿½ ï¿½Î¾îµµ ï¿½È´ï¿½.",
             "",
             transcript
           ].join("\\n")
@@ -250,23 +250,23 @@ function summarizeWithoutLlm({ messages, date }) {
     .map((message) => {
       const parts = [];
       if (message.content) parts.push(message.content);
-      if (message.embedsText?.length > 0) parts.push(`?„ë² ?? ${message.embedsText.join(" | ")}`);
-      if (message.attachments?.length > 0) parts.push(`ì²¨ë?: ${message.attachments.join(", ")}`);
-      if (message.stickers?.length > 0) parts.push(`?¤í‹°ì»? ${message.stickers.join(", ")}`);
-      const body = parts.length > 0 ? parts.join(" / ") : "(ë³¸ë¬¸ ?†ìŒ)";
+      if (message.embedsText?.length > 0) parts.push(`?ï¿½ë² ?? ${message.embedsText.join(" | ")}`);
+      if (message.attachments?.length > 0) parts.push(`ì²¨ï¿½?: ${message.attachments.join(", ")}`);
+      if (message.stickers?.length > 0) parts.push(`?ï¿½í‹°ï¿½? ${message.stickers.join(", ")}`);
+      const body = parts.length > 0 ? parts.join(" / ") : "(ë³¸ë¬¸ ?ï¿½ìŒ)";
       return `${message.time} ${message.author}: ${body}`;
     })
     .filter((line) => line.trim().length > 0)
     .slice(0, 10);
 
   const troubleshootingLines = lines.filter((line) =>
-    /(?¤ë¥˜|?ëŸ¬|ë²„ê·¸|?¤íŒ¨|?¥ì• |?ì¸|?´ê²°|?˜ì •|?´ìŠˆ|ë¬¸ì œ|error|bug|fail|failed|incident|issue)/i.test(line)
+    /error|bug|fail|failed|incident|issue|problem|trouble|troubleshooting|outage|crash/i.test(line)
   );
   const doneLines = lines.filter((line) => !troubleshootingLines.includes(line));
 
   return buildSummary({
     date,
-    done: doneLines.length > 0 ? doneLines : ["?”ì•½?????ˆëŠ” ?ìŠ¤?¸ê? ?†ìŠµ?ˆë‹¤."],
+    done: doneLines.length > 0 ? doneLines : ["?ï¿½ì•½?????ï¿½ëŠ” ?ï¿½ìŠ¤?ï¿½ï¿½? ?ï¿½ìŠµ?ï¿½ë‹¤."],
     troubleshooting: troubleshootingLines
   });
 }
@@ -290,25 +290,25 @@ function normalizeList(value, fallback) {
 
 function buildEmptyDone(fetchStats) {
   const totals = fetchStats?.totals;
-  const done = ["?”ì•½??Discord ë©”ì‹œì§€ê°€ ?†ìŠµ?ˆë‹¤."];
+  const done = ["?ï¿½ì•½??Discord ë©”ì‹œì§€ê°€ ?ï¿½ìŠµ?ï¿½ë‹¤."];
 
   if (!totals) return done;
 
   if (Number(totals.fetched) === 0) {
-    done.push("ì±„ë„ ID/ê¶Œí•œ(View Channel, Read Message History) ?ëŠ” ? ì§œ ë²”ìœ„ë¥??•ì¸?˜ì„¸??");
+    done.push("ì±„ë„ ID/ê¶Œí•œ(View Channel, Read Message History) ?ï¿½ëŠ” ?ï¿½ì§œ ë²”ìœ„ï¿½??ï¿½ì¸?ï¿½ì„¸??");
     return done;
   }
 
   if (Number(totals.skippedBot) > 0) {
     done.push(
-      `EXCLUDE_BOT_MESSAGES=trueë¡?ë´?ë©”ì‹œì§€ ${totals.skippedBot}ê°œê? ?œì™¸?˜ì—ˆ?µë‹ˆ?? ?„ìš”?˜ë©´ falseë¡??¤ì •?˜ì„¸??`
+      `EXCLUDE_BOT_MESSAGES=trueï¿½?ï¿½?ë©”ì‹œì§€ ${totals.skippedBot}ê°œï¿½? ?ï¿½ì™¸?ï¿½ì—ˆ?ï¿½ë‹ˆ?? ?ï¿½ìš”?ï¿½ë©´ falseï¿½??ï¿½ì •?ï¿½ì„¸??`
     );
   }
 
   if (Number(totals.keptEmptyBody) > 0) {
     done.push(
-      `?˜ì§‘??ë©”ì‹œì§€ ì¤?ë³¸ë¬¸/?„ë² ??ì²¨ë?ê°€ ë¹„ì–´?ˆëŠ” ??ª©??${totals.keptEmptyBody}ê°??ˆìŠµ?ˆë‹¤. ` +
-        "Discord Developer Portal?ì„œ MESSAGE CONTENT INTENT ?¤ì •???•ì¸?˜ì„¸??"
+      `?ï¿½ì§‘??ë©”ì‹œì§€ ï¿½?ë³¸ë¬¸/?ï¿½ë² ??ì²¨ï¿½?ê°€ ë¹„ì–´?ï¿½ëŠ” ??ï¿½ï¿½??${totals.keptEmptyBody}ï¿½??ï¿½ìŠµ?ï¿½ë‹¤. ` +
+        "Discord Developer Portal?ï¿½ì„œ MESSAGE CONTENT INTENT ?ï¿½ì •???ï¿½ì¸?ï¿½ì„¸??"
     );
   }
 
@@ -326,7 +326,7 @@ function isMeaningfulMessage(message) {
 
 function buildUnreadableContentDone(fetchStats) {
   const totals = fetchStats?.totals;
-  const done = ["Discord ë©”ì‹œì§€???˜ì§‘?ì?ë§?ë³¸ë¬¸/?„ë² ??ì²¨ë?ë¥??½ì„ ???†ìŠµ?ˆë‹¤."];
+  const done = ["Discord ë©”ì‹œì§€???ï¿½ì§‘?ï¿½ï¿½?ï¿½?ë³¸ë¬¸/?ï¿½ë² ??ì²¨ï¿½?ï¿½??ï¿½ì„ ???ï¿½ìŠµ?ï¿½ë‹¤."];
 
   if (totals) {
     done.push(
@@ -334,8 +334,10 @@ function buildUnreadableContentDone(fetchStats) {
     );
   }
 
-  done.push("Discord Developer Portal?ì„œ MESSAGE CONTENT INTENTë¥?ì¼°ëŠ”ì§€ ?•ì¸?˜ì„¸??");
-  done.push("ë´?ê¶Œí•œ(View Channel, Read Message History)ê³?ì±„ë„ ?‘ê·¼ ê°€???¬ë????•ì¸?˜ì„¸??");
+  done.push("Discord Developer Portal?ï¿½ì„œ MESSAGE CONTENT INTENTï¿½?ì¼°ëŠ”ì§€ ?ï¿½ì¸?ï¿½ì„¸??");
+  done.push("ï¿½?ê¶Œí•œ(View Channel, Read Message History)ï¿½?ì±„ë„ ?ï¿½ê·¼ ê°€???ï¿½ï¿½????ï¿½ì¸?ï¿½ì„¸??");
 
   return done.slice(0, 6);
 }
+
+
