@@ -28,8 +28,8 @@ async function run() {
     const summary = await summarizeWorklog({
       messages: [],
       date: "2026-04-23",
-      geminiApiKey: "",
-      geminiModel: "",
+      gptApiKey: "",
+      gptModel: "",
       maxTranscriptChars: 1000,
       fetchStats: {
         perChannel: [],
@@ -53,8 +53,8 @@ async function run() {
     const summary = await summarizeWorklog({
       messages: [],
       date: "2026-04-23",
-      geminiApiKey: "",
-      geminiModel: "",
+      gptApiKey: "",
+      gptModel: "",
       maxTranscriptChars: 1000,
       fetchStats: {
         perChannel: [],
@@ -79,8 +79,8 @@ async function run() {
     const summary = await summarizeWorklog({
       messages,
       date: "2026-04-23",
-      geminiApiKey: "",
-      geminiModel: "",
+      gptApiKey: "",
+      gptModel: "",
       maxTranscriptChars: 1000,
       fetchStats: {
         perChannel: [],
@@ -113,8 +113,8 @@ async function run() {
     const summary = await summarizeWorklog({
       messages: [],
       date: "2026-04-23",
-      geminiApiKey: "",
-      geminiModel: "",
+      gptApiKey: "",
+      gptModel: "",
       maxTranscriptChars: 1000,
       fetchStats: { perChannel: [], totals: { fetched: 0, skippedBot: 0, keptEmptyBody: 0 } }
     });
@@ -134,8 +134,8 @@ async function run() {
     const summary = await summarizeWorklog({
       messages: [],
       date: "2026-04-23",
-      geminiApiKey: "",
-      geminiModel: "",
+      gptApiKey: "",
+      gptModel: "",
       maxTranscriptChars: 1000,
       fetchStats: { perChannel: [], totals: { fetched: 0, skippedBot: 0, keptEmptyBody: 0 } }
     });

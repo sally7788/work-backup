@@ -11,8 +11,8 @@ export function loadConfig() {
     notionDatabaseId: normalizeNotionId(env.NOTION_DATABASE_ID || DEFAULT_NOTION_DATABASE_ID, {
       name: "NOTION_DATABASE_ID"
     }),
-    geminiApiKey: env.GEMINI_API_KEY || "",
-    geminiModel: env.GEMINI_MODEL || "gemini-2.0-flash",
+    gptApiKey: env.GPT_API_KEY || env.GEMINI_API_KEY || "",
+    gptModel: env.GPT_MODEL || env.GEMINI_MODEL || "gpt-5.4-mini",
     timezone: env.TIMEZONE || "Asia/Seoul",
     dailyReportTime: env.DAILY_REPORT_TIME || "08:00",
     excludeBotMessages: readBoolean(env.EXCLUDE_BOT_MESSAGES, true),

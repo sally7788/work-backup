@@ -28,8 +28,8 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.0-flash' }}
+          GPT_API_KEY: ${{ secrets.GPT_API_KEY || secrets.GEMINI_API_KEY }}
+          GPT_MODEL: ${{ vars.GPT_MODEL || vars.GEMINI_MODEL || 'gpt-5.4-mini' }}
           TIMEZONE: Asia/Seoul
           DAILY_REPORT_TIME: "08:00"
           EXCLUDE_BOT_MESSAGES: "true"

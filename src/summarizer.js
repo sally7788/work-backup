@@ -3,28 +3,28 @@
 export const SECTIONS = ["done", "troubleshooting", "lessons", "improvements", "notes", "tomorrow"];
 
 export const SECTION_LABELS = {
-  done: "한 일",
-  troubleshooting: "트러블슈팅",
-  lessons: "배운점",
-  improvements: "개선할점",
-  notes: "메모/기타",
-  tomorrow: "내일 할 일"
+  done: "????,
+  troubleshooting: "?�러블슈??,
+  lessons: "배운??,
+  improvements: "개선?�점",
+  notes: "메모/기�?",
+  tomorrow: "?�일 ????
 };
 
 export const SECTION_PLACEHOLDERS = {
-  done: "기록된 한 일이 없습니다.",
-  troubleshooting: "기록된 트러블슈팅이 없습니다.",
-  lessons: "기록된 배운점이 없습니다.",
-  improvements: "기록된 개선할점이 없습니다.",
-  notes: "기록된 메모가 없습니다.",
-  tomorrow: "기록된 내일 할 일이 없습니다."
+  done: "기록?????�이 ?�습?�다.",
+  troubleshooting: "기록???�러블슈?�이 ?�습?�다.",
+  lessons: "기록??배운?�이 ?�습?�다.",
+  improvements: "기록??개선?�점???�습?�다.",
+  notes: "기록??메모가 ?�습?�다.",
+  tomorrow: "기록???�일 ???�이 ?�습?�다."
 };
 
 export async function summarizeWorklog({
   messages,
   date,
-  geminiApiKey,
-  geminiModel,
+  gptApiKey,
+  gptModel,
   maxTranscriptChars,
   fetchStats
 }) {
@@ -46,15 +46,15 @@ export async function summarizeWorklog({
   const fullTranscript = buildTranscript(meaningfulMessages);
   const transcript = truncateTranscript(fullTranscript, maxTranscriptChars);
 
-  if (!geminiApiKey) {
+  if (!gptApiKey) {
     return summarizeWithoutLlm({ messages: meaningfulMessages, date });
   }
 
   const result = await summarizeWithGemini({
     transcript,
     date,
-    geminiApiKey,
-    geminiModel
+    geminiApiKey: gptApiKey,
+    geminiModel: gptModel
   });
 
   const sections = {};
@@ -64,13 +64,13 @@ export async function summarizeWorklog({
 
   return {
     date,
-    title: result.title || `${date} 업무 일지`,
+    title: result.title || `${date} ?�무 ?��?`,
     ...sections
   };
 }
 
 export function formatReport(summary) {
-  const lines = [`# ${summary.date} 업무 일지`, "", "## 제목", summary.title, ""];
+  const lines = [`# ${summary.date} ?�무 ?��?`, "", "## ?�목", summary.title, ""];
   for (const key of SECTIONS) {
     lines.push(`## ${SECTION_LABELS[key]}`);
     for (const item of summary[key]) {
@@ -90,7 +90,7 @@ function buildSummary({ date, title, done, troubleshooting, lessons, improvement
   }
   return {
     date,
-    title: title || `${date} 업무 일지`,
+    title: title || `${date} ?�무 ?��?`,
     ...sections
   };
 }
@@ -100,11 +100,11 @@ function buildTranscript(messages) {
     .map((message) => {
       const bodyParts = [];
       if (message.content) bodyParts.push(message.content);
-      if (message.embedsText?.length > 0) bodyParts.push(`임베드: ${message.embedsText.join(" | ")}`);
-      if (message.attachments?.length > 0) bodyParts.push(`첨부: ${message.attachments.join(", ")}`);
-      if (message.stickers?.length > 0) bodyParts.push(`스티커: ${message.stickers.join(", ")}`);
+      if (message.embedsText?.length > 0) bodyParts.push(`?�베?? ${message.embedsText.join(" | ")}`);
+      if (message.attachments?.length > 0) bodyParts.push(`첨�?: ${message.attachments.join(", ")}`);
+      if (message.stickers?.length > 0) bodyParts.push(`?�티�? ${message.stickers.join(", ")}`);
 
-      const body = bodyParts.length > 0 ? bodyParts.join("\n") : "(본문 없음)";
+      const body = bodyParts.length > 0 ? bodyParts.join("\n") : "(본문 ?�음)";
       return `[${message.time}] #${message.channelId} ${message.author}\n${body}`;
     })
     .join("\n");
@@ -128,7 +128,7 @@ function truncateTranscript(transcript, maxChars) {
 }
 
 async function summarizeWithGemini({ transcript, date, geminiApiKey, geminiModel }) {
-  const DEFAULT_FALLBACK_MODEL = "gemini-2.5-flash";
+  const DEFAULT_FALLBACK_MODEL = "gpt-5.4-mini";
   const modelsToTry = parseGeminiModelCandidates(geminiModel);
 
   let lastError;
@@ -174,7 +174,7 @@ function parseGeminiModelCandidates(geminiModel) {
     if (!unique.includes(value)) unique.push(value);
   }
 
-  return unique.length > 0 ? unique : ["gemini-2.5-flash"];
+  return unique.length > 0 ? unique : ["gpt-5.4-mini"];
 }
 
 function stripModelsPrefix(value) {
@@ -187,61 +187,55 @@ function stripModelsPrefix(value) {
 function isGeminiModelUnavailable(error) {
   const status = error?.status;
   const bodyText = error?.bodyText || "";
-  if (status !== 404) return false;
-  return /NOT_FOUND|no longer available|model.*not.*available|model.*not.*found/i.test(bodyText);
+  if (status !== 404 && status !== 400) return false;
+  return /NOT_FOUND|no longer available|model.*not.*available|model.*not.*found|model_not_found|invalid.*model/i.test(
+    bodyText
+  );
 }
 
 async function generateContentWithGemini({ transcript, date, geminiApiKey, model }) {
-  const url = new URL(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
-  );
-  url.searchParams.set("key", geminiApiKey);
+  const url = new URL("https://api.openai.com/v1/chat/completions");
 
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
+      Authorization: `Bearer ${geminiApiKey}`
     },
     body: JSON.stringify({
-      contents: [
+      model,
+      messages: [
         {
           role: "user",
-          parts: [
-            {
-              text: [
-                "너는 한국어 업무 일지 요약 비서다.",
-                "아래 Discord 메시지 로그를 바탕으로 업무 일지를 6개 섹션으로 요약해라.",
-                "추측하지 말고, 로그에 있는 사실만 요약한다.",
-                "분류 기준:",
-                "- done: 실제로 수행/완료한 작업",
-                "- troubleshooting: 오류/에러/버그/실패/장애/원인/해결/수정/이슈/문제 관련 내용",
-                "- lessons: 새롭게 배운 점, 알게 된 인사이트",
-                "- improvements: 개선이 필요한 부분, 향후 보완할 문제",
-                "- notes: 위 분류에 속하지 않는 메모/참고사항",
-                "- tomorrow: 다음 날 할 일/계획",
-                "",
-                `날짜: ${date}`,
-                "아래 로그를 바탕으로 JSON만 반환해라. (추가 설명 금지)",
-                '스키마: {"title":"간단한 제목","done":["한 일"],"troubleshooting":["트러블슈팅"],"lessons":["배운점"],"improvements":["개선할점"],"notes":["메모"],"tomorrow":["내일 할 일"]}',
-                "각 배열은 1~6개 항목, 한국어 문장으로 작성한다.",
-                "해당하는 내용이 없는 섹션은 빈 배열 [] 로 반환해도 된다.",
-                "",
-                transcript
-              ].join("\\n")
-            }
-          ]
+          content: [
+            "�Ʒ� ä�� �α׸� �ٰŷ�, 6�� �������� �������.",
+            "Discord ä�� �޽��� �α׸� ����, �� �׸��� ����ؼ� JSON�� ��ȯ����.",
+            "��� ������ �׻� JSON ��ü�̸�, �� �Ʒ� Ű�� ��� ä����:",
+            "- title: �۾� ���� ����",
+            "- done: �Ϸ�� �۾�",
+            "- troubleshooting: �̽�/����/���/����",
+            "- lessons: �н��� ����",
+            "- improvements: ������",
+            "- notes: ���� �޸�",
+            "- tomorrow: ���� �� ��ȹ",
+            "",
+            `������: ${date}`,
+            "�޽��� ������ �ٰŷ� �� ������ ���ڿ� �迭�� �����ϰ�, �ݵ�� 1~6�� �׸� ������ ä����.",
+            "����: {\"title\":\"�۾� ���\",\"done\":[\"...\"],\"troubleshooting\":[\"...\"],\"lessons\":[\"...\"],\"improvements\":[\"...\"],\"notes\":[\"...\"],\"tomorrow\":[\"...\"]}",
+            "�ʿ��ϸ� JSON �迭�� �� �迭([])�� �ξ �ȴ�.",
+            "",
+            transcript
+          ].join("\\n")
         }
       ],
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: "application/json"
-      }
+      temperature: 0.2,
+      response_format: { type: "json_object" }
     })
   });
 
   if (!response.ok) {
     const bodyText = await response.text();
-    const error = new Error(`Gemini API failed (model=${model}): ${response.status} ${bodyText}`);
+    const error = new Error(`GPT API failed (model=${model}): ${response.status} ${bodyText}`);
     error.status = response.status;
     error.bodyText = bodyText;
     error.model = model;
@@ -256,33 +250,30 @@ function summarizeWithoutLlm({ messages, date }) {
     .map((message) => {
       const parts = [];
       if (message.content) parts.push(message.content);
-      if (message.embedsText?.length > 0) parts.push(`임베드: ${message.embedsText.join(" | ")}`);
-      if (message.attachments?.length > 0) parts.push(`첨부: ${message.attachments.join(", ")}`);
-      if (message.stickers?.length > 0) parts.push(`스티커: ${message.stickers.join(", ")}`);
-      const body = parts.length > 0 ? parts.join(" / ") : "(본문 없음)";
+      if (message.embedsText?.length > 0) parts.push(`?�베?? ${message.embedsText.join(" | ")}`);
+      if (message.attachments?.length > 0) parts.push(`첨�?: ${message.attachments.join(", ")}`);
+      if (message.stickers?.length > 0) parts.push(`?�티�? ${message.stickers.join(", ")}`);
+      const body = parts.length > 0 ? parts.join(" / ") : "(본문 ?�음)";
       return `${message.time} ${message.author}: ${body}`;
     })
     .filter((line) => line.trim().length > 0)
     .slice(0, 10);
 
   const troubleshootingLines = lines.filter((line) =>
-    /(오류|에러|버그|실패|장애|원인|해결|수정|이슈|문제|error|bug|fail|failed|incident|issue)/i.test(line)
+    /(?�류|?�러|버그|?�패|?�애|?�인|?�결|?�정|?�슈|문제|error|bug|fail|failed|incident|issue)/i.test(line)
   );
   const doneLines = lines.filter((line) => !troubleshootingLines.includes(line));
 
   return buildSummary({
     date,
-    done: doneLines.length > 0 ? doneLines : ["요약할 수 있는 텍스트가 없습니다."],
+    done: doneLines.length > 0 ? doneLines : ["?�약?????�는 ?�스?��? ?�습?�다."],
     troubleshooting: troubleshootingLines
   });
 }
 
 function extractGeminiText(body) {
-  return (body.candidates || [])
-    .flatMap((candidate) => candidate.content?.parts || [])
-    .map((part) => part.text || "")
-    .join("")
-    .trim();
+  const text = body?.choices?.[0]?.message?.content || "";
+  return String(text).trim();
 }
 
 function stripCodeFence(text) {
@@ -299,25 +290,25 @@ function normalizeList(value, fallback) {
 
 function buildEmptyDone(fetchStats) {
   const totals = fetchStats?.totals;
-  const done = ["요약할 Discord 메시지가 없습니다."];
+  const done = ["?�약??Discord 메시지가 ?�습?�다."];
 
   if (!totals) return done;
 
   if (Number(totals.fetched) === 0) {
-    done.push("채널 ID/권한(View Channel, Read Message History) 또는 날짜 범위를 확인하세요.");
+    done.push("채널 ID/권한(View Channel, Read Message History) ?�는 ?�짜 범위�??�인?�세??");
     return done;
   }
 
   if (Number(totals.skippedBot) > 0) {
     done.push(
-      `EXCLUDE_BOT_MESSAGES=true로 봇 메시지 ${totals.skippedBot}개가 제외되었습니다. 필요하면 false로 설정하세요.`
+      `EXCLUDE_BOT_MESSAGES=true�?�?메시지 ${totals.skippedBot}개�? ?�외?�었?�니?? ?�요?�면 false�??�정?�세??`
     );
   }
 
   if (Number(totals.keptEmptyBody) > 0) {
     done.push(
-      `수집된 메시지 중 본문/임베드/첨부가 비어있는 항목이 ${totals.keptEmptyBody}개 있습니다. ` +
-        "Discord Developer Portal에서 MESSAGE CONTENT INTENT 설정을 확인하세요."
+      `?�집??메시지 �?본문/?�베??첨�?가 비어?�는 ??��??${totals.keptEmptyBody}�??�습?�다. ` +
+        "Discord Developer Portal?�서 MESSAGE CONTENT INTENT ?�정???�인?�세??"
     );
   }
 
@@ -335,7 +326,7 @@ function isMeaningfulMessage(message) {
 
 function buildUnreadableContentDone(fetchStats) {
   const totals = fetchStats?.totals;
-  const done = ["Discord 메시지는 수집됐지만 본문/임베드/첨부를 읽을 수 없습니다."];
+  const done = ["Discord 메시지???�집?��?�?본문/?�베??첨�?�??�을 ???�습?�다."];
 
   if (totals) {
     done.push(
@@ -343,8 +334,8 @@ function buildUnreadableContentDone(fetchStats) {
     );
   }
 
-  done.push("Discord Developer Portal에서 MESSAGE CONTENT INTENT를 켰는지 확인하세요.");
-  done.push("봇 권한(View Channel, Read Message History)과 채널 접근 가능 여부도 확인하세요.");
+  done.push("Discord Developer Portal?�서 MESSAGE CONTENT INTENT�?켰는지 ?�인?�세??");
+  done.push("�?권한(View Channel, Read Message History)�?채널 ?�근 가???��????�인?�세??");
 
   return done.slice(0, 6);
 }

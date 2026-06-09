@@ -37,8 +37,8 @@ async function runDailyReport() {
   const summary = await summarizeWorklog({
     messages,
     date: range.date,
-    geminiApiKey: config.geminiApiKey,
-    geminiModel: config.geminiModel,
+    gptApiKey: config.gptApiKey,
+    gptModel: config.gptModel,
     maxTranscriptChars: config.maxTranscriptChars,
     fetchStats: stats
   });
