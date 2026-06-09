@@ -3,12 +3,12 @@
 export const SECTIONS = ["done", "troubleshooting", "lessons", "improvements", "notes", "tomorrow"];
 
 export const SECTION_LABELS = {
-  done: "done",
-  troubleshooting: "troubleshooting",
-  lessons: "lessons",
-  improvements: "improvements",
-  notes: "notes",
-  tomorrow: "tomorrow"
+  done: "Done",
+  troubleshooting: "Troubleshooting",
+  lessons: "Lessons",
+  improvements: "Improvements",
+  notes: "Notes",
+  tomorrow: "Tomorrow"
 };
 
 export const SECTION_PLACEHOLDERS = {
@@ -64,13 +64,13 @@ export async function summarizeWorklog({
 
   return {
     date,
-    title: result.title || `${date} ?�무 ?��?`,
+    title: result.title || `${date} Worklog Summary`,
     ...sections
   };
 }
 
 export function formatReport(summary) {
-  const lines = [`# ${summary.date} ?�무 ?��?`, "", "## ?�목", summary.title, ""];
+  const lines = [`# ${summary.date} Worklog Summary`, "", "## Title", summary.title, ""];
   for (const key of SECTIONS) {
     lines.push(`## ${SECTION_LABELS[key]}`);
     for (const item of summary[key]) {
@@ -81,7 +81,6 @@ export function formatReport(summary) {
   return lines.join("\n").trimEnd();
 }
 
-// Builds a complete 6-section summary, filling missing sections with their placeholders.
 function buildSummary({ date, title, done, troubleshooting, lessons, improvements, notes, tomorrow }) {
   const provided = { done, troubleshooting, lessons, improvements, notes, tomorrow };
   const sections = {};
@@ -90,7 +89,7 @@ function buildSummary({ date, title, done, troubleshooting, lessons, improvement
   }
   return {
     date,
-    title: title || `${date} ?�무 ?��?`,
+    title: title || `${date} Worklog Summary`,
     ...sections
   };
 }
@@ -100,11 +99,11 @@ function buildTranscript(messages) {
     .map((message) => {
       const bodyParts = [];
       if (message.content) bodyParts.push(message.content);
-      if (message.embedsText?.length > 0) bodyParts.push(`?�베?? ${message.embedsText.join(" | ")}`);
-      if (message.attachments?.length > 0) bodyParts.push(`첨�?: ${message.attachments.join(", ")}`);
-      if (message.stickers?.length > 0) bodyParts.push(`?�티�? ${message.stickers.join(", ")}`);
+      if (message.embedsText?.length > 0) bodyParts.push(`Embeds: ${message.embedsText.join(" | ")}`);
+      if (message.attachments?.length > 0) bodyParts.push(`Attachments: ${message.attachments.join(", ")}`);
+      if (message.stickers?.length > 0) bodyParts.push(`Stickers: ${message.stickers.join(", ")}`);
 
-      const body = bodyParts.length > 0 ? bodyParts.join("\n") : "(본문 ?�음)";
+      const body = bodyParts.length > 0 ? bodyParts.join("\n") : "(No readable message body)";
       return `[${message.time}] #${message.channelId} ${message.author}\n${body}`;
     })
     .join("\n");
@@ -119,12 +118,7 @@ function truncateTranscript(transcript, maxChars) {
   const head = transcript.slice(0, headSize);
   const tail = transcript.slice(-tailSize);
 
-  return [
-    `[SYSTEM] transcript truncated: full=${transcript.length} chars, kept=${head.length + tail.length} chars`,
-    head,
-    "\n...[snip]...\n",
-    tail
-  ].join("\n");
+  return [`[SYSTEM] transcript truncated: full=${transcript.length} chars, kept=${head.length + tail.length} chars`, head, "\n...[snip]...\n", tail].join("\n");
 }
 
 async function summarizeWithGemini({ transcript, date, geminiApiKey, geminiModel }) {
@@ -146,7 +140,6 @@ async function summarizeWithGemini({ transcript, date, geminiApiKey, geminiModel
       return JSON.parse(stripCodeFence(text));
     } catch (error) {
       lastError = error;
-
       if (
         !triedFallback &&
         model !== DEFAULT_FALLBACK_MODEL &&
@@ -208,24 +201,14 @@ async function generateContentWithGemini({ transcript, date, geminiApiKey, model
         {
           role: "user",
           content: [
-            "�Ʒ� ä�� �α׸� �ٰŷ�, 6�� �������� �������.",
-            "Discord ä�� �޽��� �α׸� ����, �� �׸��� ����ؼ� JSON�� ��ȯ����.",
-            "��� ������ �׻� JSON ��ü�̸�, �� �Ʒ� Ű�� ��� ä����:",
-            "- title: �۾� ���� ����",
-            "- done: �Ϸ�� �۾�",
-            "- troubleshooting: �̽�/����/���/����",
-            "- lessons: �н��� ����",
-            "- improvements: ������",
-            "- notes: ���� �޸�",
-            "- tomorrow: ���� �� ��ȹ",
-            "",
-            `������: ${date}`,
-            "�޽��� ������ �ٰŷ� �� ������ ���ڿ� �迭�� �����ϰ�, �ݵ�� 1~6�� �׸� ������ ä����.",
-            "����: {\"title\":\"�۾� ���\",\"done\":[\"...\"],\"troubleshooting\":[\"...\"],\"lessons\":[\"...\"],\"improvements\":[\"...\"],\"notes\":[\"...\"],\"tomorrow\":[\"...\"]}",
-            "�ʿ��ϸ� JSON �迭�� �� �迭([])�� �ξ �ȴ�.",
-            "",
+            "Summarize the following channel transcript into six sections.",
+            "Respond only with a JSON object.",
+            "Output keys: title, done, troubleshooting, lessons, improvements, notes, tomorrow.",
+            "Each value should be an array of strings.",
+            `Report date: ${date}`,
+            "Transcript:",
             transcript
-          ].join("\\n")
+          ].join("\n")
         }
       ],
       temperature: 0.2,
@@ -250,10 +233,10 @@ function summarizeWithoutLlm({ messages, date }) {
     .map((message) => {
       const parts = [];
       if (message.content) parts.push(message.content);
-      if (message.embedsText?.length > 0) parts.push(`?�베?? ${message.embedsText.join(" | ")}`);
-      if (message.attachments?.length > 0) parts.push(`첨�?: ${message.attachments.join(", ")}`);
-      if (message.stickers?.length > 0) parts.push(`?�티�? ${message.stickers.join(", ")}`);
-      const body = parts.length > 0 ? parts.join(" / ") : "(본문 ?�음)";
+      if (message.embedsText?.length > 0) parts.push(`Embeds: ${message.embedsText.join(" | ")}`);
+      if (message.attachments?.length > 0) parts.push(`Attachments: ${message.attachments.join(", ")}`);
+      if (message.stickers?.length > 0) parts.push(`Stickers: ${message.stickers.join(", ")}`);
+      const body = parts.length > 0 ? parts.join(" / ") : "(No readable message body)";
       return `${message.time} ${message.author}: ${body}`;
     })
     .filter((line) => line.trim().length > 0)
@@ -266,7 +249,7 @@ function summarizeWithoutLlm({ messages, date }) {
 
   return buildSummary({
     date,
-    done: doneLines.length > 0 ? doneLines : ["?�약?????�는 ?�스?��? ?�습?�다."],
+    done: doneLines.length > 0 ? doneLines : ["No readable completed items found."],
     troubleshooting: troubleshootingLines
   });
 }
@@ -277,7 +260,7 @@ function extractGeminiText(body) {
 }
 
 function stripCodeFence(text) {
-  return text.replace(/^```(?:json)?\\s*/i, "").replace(/\\s*```$/i, "").trim();
+  return text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 }
 
 function normalizeList(value, fallback) {
@@ -290,25 +273,27 @@ function normalizeList(value, fallback) {
 
 function buildEmptyDone(fetchStats) {
   const totals = fetchStats?.totals;
-  const done = ["?�약??Discord 메시지가 ?�습?�다."];
+  const done = ["No Discord messages found."];
 
   if (!totals) return done;
 
   if (Number(totals.fetched) === 0) {
-    done.push("채널 ID/권한(View Channel, Read Message History) ?�는 ?�짜 범위�??�인?�세??");
+    done.push(
+      "No messages were fetched with current channel permissions (View Channel, Read Message History)."
+    );
     return done;
   }
 
   if (Number(totals.skippedBot) > 0) {
     done.push(
-      `EXCLUDE_BOT_MESSAGES=true�?�?메시지 ${totals.skippedBot}개�? ?�외?�었?�니?? ?�요?�면 false�??�정?�세??`
+      `EXCLUDE_BOT_MESSAGES=true: skipped ${totals.skippedBot} bot messages. Set false to include them.`
     );
   }
 
   if (Number(totals.keptEmptyBody) > 0) {
     done.push(
-      `?�집??메시지 �?본문/?�베??첨�?가 비어?�는 ??��??${totals.keptEmptyBody}�??�습?�다. ` +
-        "Discord Developer Portal?�서 MESSAGE CONTENT INTENT ?�정???�인?�세??"
+      `Kept messages with empty body/embeds/attachments: ${totals.keptEmptyBody}. ` +
+        "Check MESSAGE CONTENT INTENT in Discord Developer Portal."
     );
   }
 
@@ -326,18 +311,14 @@ function isMeaningfulMessage(message) {
 
 function buildUnreadableContentDone(fetchStats) {
   const totals = fetchStats?.totals;
-  const done = ["Discord 메시지???�집?��?�?본문/?�베??첨�?�??�을 ???�습?�다."];
+  const done = ["Unable to read text from Discord messages."];
 
   if (totals) {
-    done.push(
-      `kept=${Number(totals.kept || 0)}, keptEmptyBody=${Number(totals.keptEmptyBody || 0)}`
-    );
+    done.push(`kept=${Number(totals.kept || 0)}, keptEmptyBody=${Number(totals.keptEmptyBody || 0)}`);
   }
 
-  done.push("Discord Developer Portal?�서 MESSAGE CONTENT INTENT�?켰는지 ?�인?�세??");
-  done.push("�?권한(View Channel, Read Message History)�?채널 ?�근 가???��????�인?�세??");
+  done.push("Discord Developer Portal: verify MESSAGE CONTENT INTENT is enabled.");
+  done.push("Check View Channel and Read Message History permissions for the selected channels.");
 
   return done.slice(0, 6);
 }
-
-
