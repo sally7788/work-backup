@@ -3,21 +3,21 @@
 export const SECTIONS = ["done", "troubleshooting", "lessons", "improvements", "notes", "tomorrow"];
 
 export const SECTION_LABELS = {
-  done: "Done",
-  troubleshooting: "Troubleshooting",
-  lessons: "Lessons",
-  improvements: "Improvements",
-  notes: "Notes",
-  tomorrow: "Tomorrow"
+  done: "완료",
+  troubleshooting: "트러블슈팅",
+  lessons: "교훈",
+  improvements: "개선사항",
+  notes: "메모",
+  tomorrow: "내일"
 };
 
 export const SECTION_PLACEHOLDERS = {
-  done: "No completed work found.",
-  troubleshooting: "No troubleshooting items found.",
-  lessons: "No lessons noted.",
-  improvements: "No improvements noted.",
-  notes: "No notes added.",
-  tomorrow: "No plans for tomorrow."
+  done: "완료된 작업이 없습니다.",
+  troubleshooting: "이슈가 없습니다.",
+  lessons: "학습한 내용이 없습니다.",
+  improvements: "개선할 내용이 없습니다.",
+  notes: "추가 메모가 없습니다.",
+  tomorrow: "내일 계획이 없습니다."
 };
 
 export async function summarizeWorklog({
@@ -64,13 +64,13 @@ export async function summarizeWorklog({
 
   return {
     date,
-    title: result.title || `${date} Worklog Summary`,
+    title: result.title || `${date} 작업일지 요약`,
     ...sections
   };
 }
 
 export function formatReport(summary) {
-  const lines = [`# ${summary.date} Worklog Summary`, "", "## Title", summary.title, ""];
+  const lines = [`# ${summary.date} 작업일지 요약`, "", "## 제목", summary.title, ""];
   for (const key of SECTIONS) {
     lines.push(`## ${SECTION_LABELS[key]}`);
     for (const item of summary[key]) {
@@ -89,7 +89,7 @@ function buildSummary({ date, title, done, troubleshooting, lessons, improvement
   }
   return {
     date,
-    title: title || `${date} Worklog Summary`,
+    title: title || `${date} 작업일지 요약`,
     ...sections
   };
 }
@@ -99,11 +99,11 @@ function buildTranscript(messages) {
     .map((message) => {
       const bodyParts = [];
       if (message.content) bodyParts.push(message.content);
-      if (message.embedsText?.length > 0) bodyParts.push(`Embeds: ${message.embedsText.join(" | ")}`);
-      if (message.attachments?.length > 0) bodyParts.push(`Attachments: ${message.attachments.join(", ")}`);
-      if (message.stickers?.length > 0) bodyParts.push(`Stickers: ${message.stickers.join(", ")}`);
+      if (message.embedsText?.length > 0) bodyParts.push(`임베드: ${message.embedsText.join(" | ")}`);
+      if (message.attachments?.length > 0) bodyParts.push(`첨부파일: ${message.attachments.join(", ")}`);
+      if (message.stickers?.length > 0) bodyParts.push(`스티커: ${message.stickers.join(", ")}`);
 
-      const body = bodyParts.length > 0 ? bodyParts.join("\n") : "(No readable message body)";
+      const body = bodyParts.length > 0 ? bodyParts.join("\n") : "(본문 내용을 읽을 수 없습니다)";
       return `[${message.time}] #${message.channelId} ${message.author}\n${body}`;
     })
     .join("\n");
@@ -201,12 +201,12 @@ async function generateContentWithGemini({ transcript, date, geminiApiKey, model
         {
           role: "user",
           content: [
-            "Summarize the following channel transcript into six sections.",
-            "Respond only with a JSON object.",
-            "Output keys: title, done, troubleshooting, lessons, improvements, notes, tomorrow.",
-            "Each value should be an array of strings.",
-            `Report date: ${date}`,
-            "Transcript:",
+            "다음 채널 메시지 로그를 6개 섹션으로 요약해줘.",
+            "반드시 JSON 객체만 반환해.",
+            "출력 키: title, done, troubleshooting, lessons, improvements, notes, tomorrow.",
+            "각 값은 문자열 배열 형식으로 작성해.",
+            `기준일: ${date}`,
+            "대화 로그:",
             transcript
           ].join("\n")
         }
@@ -233,10 +233,10 @@ function summarizeWithoutLlm({ messages, date }) {
     .map((message) => {
       const parts = [];
       if (message.content) parts.push(message.content);
-      if (message.embedsText?.length > 0) parts.push(`Embeds: ${message.embedsText.join(" | ")}`);
-      if (message.attachments?.length > 0) parts.push(`Attachments: ${message.attachments.join(", ")}`);
-      if (message.stickers?.length > 0) parts.push(`Stickers: ${message.stickers.join(", ")}`);
-      const body = parts.length > 0 ? parts.join(" / ") : "(No readable message body)";
+      if (message.embedsText?.length > 0) parts.push(`임베드: ${message.embedsText.join(" | ")}`);
+      if (message.attachments?.length > 0) parts.push(`첨부파일: ${message.attachments.join(", ")}`);
+      if (message.stickers?.length > 0) parts.push(`스티커: ${message.stickers.join(", ")}`);
+      const body = parts.length > 0 ? parts.join(" / ") : "(본문 내용을 읽을 수 없습니다)";
       return `${message.time} ${message.author}: ${body}`;
     })
     .filter((line) => line.trim().length > 0)
@@ -249,7 +249,7 @@ function summarizeWithoutLlm({ messages, date }) {
 
   return buildSummary({
     date,
-    done: doneLines.length > 0 ? doneLines : ["No readable completed items found."],
+    done: doneLines.length > 0 ? doneLines : ["읽을 수 있는 완료 항목이 없습니다."],
     troubleshooting: troubleshootingLines
   });
 }
@@ -273,27 +273,27 @@ function normalizeList(value, fallback) {
 
 function buildEmptyDone(fetchStats) {
   const totals = fetchStats?.totals;
-  const done = ["No Discord messages found."];
+  const done = ["Discord 메시지가 없습니다."];
 
   if (!totals) return done;
 
   if (Number(totals.fetched) === 0) {
     done.push(
-      "No messages were fetched with current channel permissions (View Channel, Read Message History)."
+      "현재 채널 권한(View Channel, Read Message History)으로는 메시지를 가져오지 못했습니다."
     );
     return done;
   }
 
   if (Number(totals.skippedBot) > 0) {
     done.push(
-      `EXCLUDE_BOT_MESSAGES=true: skipped ${totals.skippedBot} bot messages. Set false to include them.`
+      `EXCLUDE_BOT_MESSAGES=true: 봇 메시지 ${totals.skippedBot}건이 제외되었습니다. false로 설정하면 포함됩니다.`
     );
   }
 
   if (Number(totals.keptEmptyBody) > 0) {
     done.push(
-      `Kept messages with empty body/embeds/attachments: ${totals.keptEmptyBody}. ` +
-        "Check MESSAGE CONTENT INTENT in Discord Developer Portal."
+      `본문/임베드/첨부파일이 비어 있어 임시로 보존된 메시지: ${totals.keptEmptyBody}건. ` +
+        "Discord Developer Portal에서 MESSAGE CONTENT INTENT가 켜져 있는지 확인하세요."
     );
   }
 
@@ -311,14 +311,15 @@ function isMeaningfulMessage(message) {
 
 function buildUnreadableContentDone(fetchStats) {
   const totals = fetchStats?.totals;
-  const done = ["Unable to read text from Discord messages."];
+  const done = ["Discord 메시지에서 텍스트를 읽지 못했습니다."];
 
   if (totals) {
     done.push(`kept=${Number(totals.kept || 0)}, keptEmptyBody=${Number(totals.keptEmptyBody || 0)}`);
   }
 
-  done.push("Discord Developer Portal: verify MESSAGE CONTENT INTENT is enabled.");
-  done.push("Check View Channel and Read Message History permissions for the selected channels.");
+  done.push("Discord Developer Portal에서 MESSAGE CONTENT INTENT가 활성화되어 있는지 확인하세요.");
+  done.push("선택한 채널에서 View Channel와 Read Message History 권한을 확인하세요.");
 
   return done.slice(0, 6);
 }
+
